@@ -1,0 +1,53 @@
+.app-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.main-container {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    height: calc(100vh - 68px);
+    max-height: calc(100vh - 68px);
+    overflow: hidden;
+    position: relative;
+    /* gap: 10px; */
+}
+
+.app-wrapper.no-header .main-container {
+    height: 100vh;
+    max-height: 100vh;
+}
+
+/* Content area that can scroll */
+.content-area {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100%;
+    position: relative;
+}
+
+/* Ensure sidebar doesn't cause horizontal overflow */
+.result-sidebar {
+    flex-shrink: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100%;
+    position: relative;
+}
+
+/* When collapsed on mobile, let content area take full width */
+@media (max-width: 768px) {
+  .main-container .result-sidebar.collapsed + .content-area {
+      width: 100%;
+  }
+}
+
+/* Prevent any component from causing horizontal scroll */
+.content-area > * {
+    max-width: 100%;
+    overflow-x: hidden;
+}

@@ -1,0 +1,45 @@
+venv/*
+frontend/node_modules/
+node_modules/
+rice_webapp_frontend\release\locales\
+
+# Create comprehensive .gitignore
+cat > .gitignore << EOF
+# Build artifacts
+build/
+dist/
+release/
+target/
+*.exe
+*.pkg
+*.asar
+*.pth
+*.pyc
+__pycache__/
+*.so
+*.dll
+
+# Dependencies
+node_modules/
+venv/
+.env
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+EOF
+
+
+# Add these lines to .gitignore
+rice_webapp_backend/build/
+rice_webapp_backend/dist/
+rice_webapp_frontend/release/
+rice_webapp_frontend/backend-dist/app/
+rice_webapp_frontend/scanner-dist/scanner_service

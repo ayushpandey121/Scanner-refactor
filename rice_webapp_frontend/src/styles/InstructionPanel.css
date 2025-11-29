@@ -1,0 +1,64 @@
+
+
+.scan-instructions {
+  margin: 10px 0;
+  /* margin-top: 1.5rem; */
+  background: #D4EDDA;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.scan-instructions h4 {
+  color: #1f2937;
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+}
+
+.scan-instructions ul {
+  list-style-type: disc;
+  padding-left: 20px;
+  margin: 12px 0;
+}
+
+.scan-instructions li {
+  margin-bottom: 8px;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.scan-instructions .note {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.scan-instructions .note p {
+  margin: 0;
+  color: #15803d;
+  font-size: 0.9rem;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .scan-instructions {
+    padding: 1rem;
+  }
+
+  .scan-instructions h4 {
+    text-align: center;
+  }
+
+  .scan-instructions ul {
+    padding-left: 16px;
+  }
+
+  .scan-instructions li {
+    font-size: 0.9rem;
+  }
+}
+
+
+

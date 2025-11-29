@@ -1,0 +1,46 @@
+/* Global CSS Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    height: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#root {
+    height: 100vh;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Font family for all elements */
+.expanded,
+h1, h2, h3, h4, h5, h6,
+p, span, div, button, input, select, textarea {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Prevent horizontal scrolling on all containers */
+.main-container,
+.result-sidebar,
+.header-container {
+    overflow-x: hidden;
+}
+
+/* Smooth scrolling for vertical content */
+.main-container {
+    overflow-y: auto;
+    height: calc(100vh - 68px); /* Adjust based on actual header height */
+}

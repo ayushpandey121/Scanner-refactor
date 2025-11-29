@@ -1,0 +1,12 @@
+Flask==2.3.3
+Flask-CORS==4.0.0
+boto3==1.28.25
+gunicorn==21.2.0
+opencv-python-headless==4.8.1.78
+numpy==1.24.3
+pandas==2.0.3
+scipy==1.11.1
+scikit-image==0.21.0
+imutils==0.5.4
+Pillow==10.0.0
+python-dotenv==1.0.0

@@ -1,0 +1,127 @@
+.header-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+  padding: 10px 20px;
+  gap: 20px;
+  min-height: 48px;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+}
+
+.left-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 1;
+}
+
+.header-logo {
+  width: 90px;
+  height: auto;
+  margin-top: 0 !important;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.app-title {
+  font-size: 1.5rem;
+  color: #8BBE4C;
+  margin: 0;
+  font-weight: bold;
+  white-space: nowrap;
+  user-select: none;
+  flex-grow: 1;
+  text-align: center;
+}
+
+.header-container .search-input {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  flex-grow: 1;
+  min-width: 320px;
+  max-width: 600px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  margin: 5px 0;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.header-container .search-input:focus {
+  outline: none;
+  border-color: #8BBE4C;
+  box-shadow: 0 0 6px #8bbe4c88;
+}
+
+.logout-button {
+  padding: 10px 20px;
+  background-color: #8BBE4C;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 1rem;
+  user-select: none;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.upload-button:hover,
+.upload-button:focus {
+  background-color: #6fa236;
+  box-shadow: 0 4px 12px rgba(111, 162, 54, 0.5);
+  outline: none;
+}
+
+/* MEDIA QUERIES FOR RESPONSIVENESS */
+
+/* Tablets and smaller devices */
+@media (max-width: 768px) {
+  .header-container {
+    justify-content: flex-start; /* allow centering */
+    gap: 12px;
+  }
+  .header-container .search-input {
+    max-width: 100%;
+    width: 100%;
+  }
+  .left-section {
+    gap: 8px;
+    justify-content: flex-start; /* keep hamburger+logo left */
+  }
+}
+
+/* Mobile devices */
+@media (max-width: 480px) {
+  .header-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 15px;
+  }
+  .left-section {
+    justify-content: flex-start; /* keep left */
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+  .header-container .search-input {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px 12px;
+    font-size: 1rem;
+  }
+  .upload-button {
+    width: 100%;
+    padding: 12px 0;
+    font-size: 1.1rem;
+  }
+  .app-title {
+    font-size: 1.15rem;
+    text-align: left; /* align title left on mobile */
+  }
+}

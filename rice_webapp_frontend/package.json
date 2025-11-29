@@ -1,0 +1,147 @@
+{
+  "name": "rice-quality-app",
+  "private": false,
+  "version": "1.0.5",
+  "description": "AgSure Rice Quality Scanner Application",
+  "author": "Agsure Innovations <info@agsureinnovations.com>",
+  "type": "commonjs",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently -n \"VITE,SCANNER\" -c \"cyan,green\" \"vite\" \"npm run scanner\"",
+    "dev:vite": "vite",
+    "scanner": "python scanner_service.py",
+    "backend": "cd ..\\rice_webapp_backend && python app.py",
+    "backend:venv": "..\\venv\\Scripts\\python.exe ..\\rice_webapp_backend\\app.py",
+    "dev:all": "concurrently -n \"VITE,BACKEND,SCANNER\" -c \"cyan,yellow,green\" \"vite\" \"npm run backend\" \"npm run scanner\"",
+    "build": "vite build",
+    "electron:dev": "cross-env NODE_ENV=development concurrently -k \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "npm run build && electron-builder",
+    "electron:build:win": "npm run build && electron-builder --win",
+    "electron:build:mac": "npm run build && electron-builder --mac",
+    "electron:build:linux": "npm run build && electron-builder --linux",
+    "electron:publish": "npm run build && electron-builder --win --publish always",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "build": {
+    "appId": "com.agsurescanner.app",
+    "productName": "Agsure Scanner",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "ayushpandey121",
+      "repo": "agsure-scanner-updates",
+      "private": false,
+      "releaseType": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json",
+      "scanner_service.py"
+    ],
+    "extraResources": [
+      {
+        "from": "backend-dist/app",
+        "to": "backend",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "scanner-dist/scanner_service",
+        "to": "scanner/scanner_service",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/icon.ico"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "public/icon.icns",
+      "category": "public.app-category.utilities"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "public/icon.png",
+      "category": "Utility"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "allowElevation": true,
+      "perMachine": false
+    }
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.8.2",
+    "axios": "^1.12.2",
+    "cors": "^2.8.5",
+    "dwt": "^19.2.0",
+    "electron-updater": "^6.1.7",
+    "express": "^5.1.0",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
+    "lucide-react": "^0.525.0",
+    "md5": "^2.3.0",
+    "otp-input-react": "^0.3.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-icons": "^5.5.0",
+    "react-lazy-load-image-component": "^1.6.3",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^6.30.1",
+    "react-toastify": "^11.0.5",
+    "recharts": "^3.3.0",
+    "redux-persist": "^6.0.0",
+    "systeminformation": "^5.21.20",
+    "uuid": "^13.0.0",
+    "wait-on": "^9.0.1",
+    "zustand": "^5.0.6"
+  },
+  "devDependencies": {
+    "@emnapi/core": "^1.7.1",
+    "@emnapi/runtime": "^1.7.1",
+    "@emnapi/wasi-threads": "^1.1.0",
+    "@eslint/js": "^9.30.1",
+    "@napi-rs/wasm-runtime": "^0.2.12",
+    "@tailwindcss/vite": "^4.1.11",
+    "@tybys/wasm-util": "^0.9.0",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "autoprefixer": "^10.4.21",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^26.0.12",
+    "eslint": "^9.30.1",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "vite": "^7.0.4"
+  }
+}

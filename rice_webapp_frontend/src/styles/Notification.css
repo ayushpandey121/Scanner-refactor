@@ -1,0 +1,339 @@
+/* Notification.css - Styles for Update Notification Component */
+
+.update-notification-container {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  width: 24rem;
+  max-width: calc(100vw - 2rem);
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Header */
+.update-notification-header {
+  background: linear-gradient(to right, #3bf64b, #14ec3c);
+  padding: 0.75rem 1rem;
+  color: rgb(7, 7, 7);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.update-notification-header-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.update-notification-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.update-notification-title {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.update-notification-close-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.update-notification-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.update-notification-close-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Content */
+.update-notification-content {
+  padding: 1rem;
+}
+
+/* Error Box */
+.update-notification-error {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  color: #b91c1c;
+  font-size: 0.875rem;
+}
+
+.update-notification-error-title {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+/* Version Info */
+.update-notification-version-info {
+  margin-bottom: 1rem;
+}
+
+.update-notification-version-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.update-notification-version-label {
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.update-notification-version-current {
+  font-weight: 500;
+}
+
+.update-notification-version-new {
+  font-weight: 500;
+  color: #25eb35;
+}
+
+/* Release Notes */
+.update-notification-release-notes {
+  background-color: #f9fafb;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+.update-notification-release-notes-title {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  color: #374151;
+}
+
+.update-notification-release-notes-content {
+  color: #4b5563;
+  max-height: 8rem;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+/* Scrollbar styling for release notes */
+.update-notification-release-notes-content::-webkit-scrollbar {
+  width: 0.375rem;
+}
+
+.update-notification-release-notes-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 0.25rem;
+}
+
+.update-notification-release-notes-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 0.25rem;
+}
+
+.update-notification-release-notes-content::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Download Progress */
+.update-notification-download-progress {
+  margin-bottom: 1rem;
+}
+
+.update-notification-progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.update-notification-progress-label {
+  color: #4b5563;
+}
+
+.update-notification-progress-percent {
+  font-weight: 500;
+}
+
+.update-notification-progress-bar-container {
+  width: 100%;
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+  height: 0.5rem;
+  overflow: hidden;
+}
+
+.update-notification-progress-bar {
+  background-color: #3bf65a;
+  height: 100%;
+  transition: width 0.3s ease-out;
+}
+
+/* Success Box */
+.update-notification-success {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 0.5rem;
+  color: #15803d;
+  font-size: 0.875rem;
+}
+
+.update-notification-success-title {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+/* Action Buttons */
+.update-notification-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.update-notification-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+
+.update-notification-btn-primary {
+  flex: 1;
+  background-color: #48f63b;
+  color: white;
+}
+
+.update-notification-btn-primary:hover {
+  background-color: #0ae84c;
+}
+
+.update-notification-btn-success {
+  flex: 1;
+  background-color: #22c55e;
+  color: white;
+}
+
+.update-notification-btn-success:hover {
+  background-color: #16a34a;
+}
+
+.update-notification-btn-secondary {
+  padding: 0.5rem 1rem;
+  color: #4b5563;
+  background-color: transparent;
+}
+
+.update-notification-btn-secondary:hover {
+  background-color: #f3f4f6;
+}
+
+.update-notification-btn-disabled {
+  flex: 1;
+  background-color: #d1d5db;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+/* Footer */
+.update-notification-footer {
+  background-color: #f9fafb;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Spinner Animation for Loading */
+.update-notification-spinner {
+  animation: spin 1s linear infinite;
+  height: 1.25rem;
+  width: 1.25rem;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .update-notification-container {
+    width: calc(100vw - 2rem);
+    bottom: 0.5rem;
+    right: 0.5rem;
+  }
+
+  .update-notification-actions {
+    flex-direction: column;
+  }
+
+  .update-notification-btn-secondary {
+    width: 100%;
+  }
+}
+
+/* Dark Mode Support (Optional) */
+@media (prefers-color-scheme: dark) {
+  .update-notification-container {
+    background-color: #1f2937;
+    border-color: #374151;
+  }
+
+  .update-notification-version-label,
+  .update-notification-release-notes-title {
+    color: #d1d5db;
+  }
+
+  .update-notification-release-notes {
+    background-color: #374151;
+  }
+
+  .update-notification-release-notes-content {
+    color: #9ca3af;
+  }
+
+  .update-notification-progress-bar-container {
+    background-color: #374151;
+  }
+
+  .update-notification-footer {
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #9ca3af;
+  }
+}
