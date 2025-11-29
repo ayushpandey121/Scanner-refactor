@@ -1,9 +1,14 @@
-# routes/report_routes.py
+# api/routes/reports.py
+"""
+Report routes
+Fetches analysis logs and provides summary data
+"""
+
 import os
-import json
 import logging
 from flask import Blueprint, jsonify
-from config import Config
+from config.settings import Config
+from storage.local_storage import load_json
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +17,12 @@ report_bp = Blueprint('report', __name__)
 
 @report_bp.route('/get_logs', methods=['GET'])
 def get_logs():
-    """Fetch all log data from static/logs directory"""
+    """
+    Fetch all log data from static/logs directory
+    
+    Returns:
+        JSON: List of log summaries sorted by timestamp
+    """
     try:
         logs_data = []
         logs_dir = Config.LOG_FOLDER
@@ -26,8 +36,10 @@ def get_logs():
         for log_file in log_files:
             try:
                 log_path = os.path.join(logs_dir, log_file)
-                with open(log_path, 'r') as f:
-                    log_data = json.load(f)
+                log_data = load_json(log_path)
+                
+                if not log_data:
+                    continue
 
                 # Extract required fields for summary
                 if 'statistics' in log_data:
@@ -36,7 +48,10 @@ def get_logs():
                         'timestamp': log_data.get('timestamp', ''),
                         'average_length': stats.get('avg_length', 0),
                         'average_width': stats.get('avg_breadth', 0),
-                        'lb_ratio': round(stats.get('avg_length', 0) / max(stats.get('avg_breadth', 1), 0.01), 2),
+                        'lb_ratio': round(
+                            stats.get('avg_length', 0) / max(stats.get('avg_breadth', 1), 0.01),
+                            2
+                        ),
                         'broken': stats.get('broken_count', 0),
                         'chalky': stats.get('chalky_count', 0),
                         'discolor': stats.get('discolored_count', 0),
@@ -50,7 +65,7 @@ def get_logs():
         # Sort by timestamp descending (newest first)
         logs_data.sort(key=lambda x: x['timestamp'], reverse=True)
 
-        return jsonify({"logs": logs_data})
+        return jsonify({"logs": logs_data}), 200
 
     except Exception as e:
         logger.error(f"Error fetching logs: {str(e)}")

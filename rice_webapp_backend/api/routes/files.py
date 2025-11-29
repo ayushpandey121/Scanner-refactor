@@ -1,9 +1,13 @@
-# routes/file_routes.py
+# api/routes/files.py
+"""
+File serving routes
+Serves images, Excel files, and logs from local storage
+"""
+
 import os
-import json
 import logging
 from flask import Blueprint, send_from_directory, jsonify, request
-from config import Config
+from config.settings import Config
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +18,17 @@ file_bp = Blueprint('files', __name__)
 
 @file_bp.route('/grain-image/<path:filename>', methods=['GET'])
 def serve_grain_image(filename):
-    """Serve individual grain images from local storage"""
+    """
+    Serve individual grain images from local storage
+    
+    Args:
+        filename: Filename or relative path (e.g., "base_name/grain.jpg")
+    
+    Returns:
+        File: Image file
+    """
     try:
-        # Handle nested paths (e.g., "base_name/grain.jpg")
+        # Handle nested paths
         full_path = os.path.join(Config.GRAIN_FOLDER, filename)
         
         # Check if file exists
@@ -24,7 +36,7 @@ def serve_grain_image(filename):
             logger.error(f"Grain image not found: {full_path}")
             return jsonify({"error": "Image not found"}), 404
         
-        # Get the directory and filename
+        # Get directory and filename
         directory = os.path.dirname(full_path)
         file_name = os.path.basename(full_path)
         
@@ -91,6 +103,9 @@ def save_model():
     """
     Save model file locally from frontend download
     Frontend sends model data as array of bytes after downloading from EC2
+    
+    Returns:
+        JSON: Success status and file info
     """
     try:
         data = request.get_json()
@@ -98,7 +113,10 @@ def save_model():
         file_data = data.get('data')  # Array of bytes
         
         if not file_name or not file_data:
-            return jsonify({'success': False, 'message': 'Missing file name or data'}), 400
+            return jsonify({
+                'success': False,
+                'message': 'Missing file name or data'
+            }), 400
         
         # Create models directory
         models_folder = os.path.join(Config.BASE_DIR, 'models')
@@ -127,7 +145,9 @@ def save_model():
 def verify_models():
     """
     Check if model files exist locally
-    Returns list of model files and their existence status
+    
+    Returns:
+        JSON: Model existence status and file list
     """
     try:
         models_folder = os.path.join(Config.BASE_DIR, 'models')

@@ -1,16 +1,24 @@
-# app.py
+# app.py (Refactored)
+"""
+Flask application factory
+Uses refactored modular architecture
+"""
+
 import logging
 import os
 from logging.handlers import RotatingFileHandler
 from flask import Flask
 from flask_cors import CORS
-from config import Config
-from routes.analysis_routes import analysis_bp
-from routes.file_routes import file_bp
-from routes.health_routes import health_bp
-from routes.activation_routes import activation_bp
-from routes.report_routes import report_bp
-from routes.varieties_routes import varieties_bp
+
+from config.settings import Config
+from api.routes import (
+    analysis_bp,
+    activation_bp,
+    file_bp,
+    health_bp,
+    report_bp,
+    varieties_bp
+)
 
 # Set up logging
 logging.basicConfig(
@@ -21,23 +29,42 @@ logger = logging.getLogger(__name__)
 
 
 def _configure_file_logging():
-    """Persist logs even when running as a hidden console executable."""
+    """
+    Persist logs even when running as a hidden console executable
+    Creates rotating log files in the configured LOG_FOLDER
+    """
     try:
         os.makedirs(Config.LOG_FOLDER, exist_ok=True)
         log_path = os.path.join(Config.LOG_FOLDER, 'backend.log')
-        handler = RotatingFileHandler(log_path, maxBytes=5 * 1024 * 1024, backupCount=3, encoding='utf-8')
-        handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        
+        handler = RotatingFileHandler(
+            log_path,
+            maxBytes=5 * 1024 * 1024,  # 5MB
+            backupCount=3,
+            encoding='utf-8'
+        )
+        handler.setFormatter(
+            logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        )
+        
         logging.getLogger().addHandler(handler)
-        logger.info("File logging enabled at %s", log_path)
+        logger.info(f"File logging enabled at {log_path}")
     except Exception as exc:
-        logger.warning("Failed to initialise file logging: %s", exc)
+        logger.warning(f"Failed to initialize file logging: {exc}")
 
 
+# Configure file logging on import
 _configure_file_logging()
 
 
 def create_app():
-    """Application factory pattern"""
+    """
+    Application factory pattern
+    Creates and configures Flask application with all routes
+    
+    Returns:
+        Flask: Configured Flask application
+    """
     app = Flask(__name__)
 
     # Load configuration
@@ -47,9 +74,11 @@ def create_app():
     CORS(app, origins=Config.CORS_ORIGINS)
 
     # Create necessary directories
+    logger.info("Creating application directories...")
     Config.create_directories()
 
     # Register blueprints
+    logger.info("Registering blueprints...")
     app.register_blueprint(health_bp)
     app.register_blueprint(analysis_bp)
     app.register_blueprint(file_bp)
@@ -59,15 +88,22 @@ def create_app():
 
     logger.info("Application initialized successfully")
     logger.info(f"All files will be stored in: {Config.STATIC_ROOT}")
+    logger.info(f"Models folder: {os.path.join(Config.BASE_DIR, 'models')}")
 
     return app
 
 
 if __name__ == "__main__":
     app = create_app()
-    logger.info("Starting Flask application...")
+    logger.info(f"Starting Flask application on {Config.HOST}:{Config.PORT}...")
+    logger.info(f"Debug mode: {Config.DEBUG}")
+    
     try:
-        app.run(host=Config.HOST, port=Config.PORT, debug=Config.DEBUG)
+        app.run(
+            host=Config.HOST,
+            port=Config.PORT,
+            debug=Config.DEBUG
+        )
     except Exception as exc:
-        logger.exception("Backend failed to start: %s", exc)
+        logger.exception(f"Backend failed to start: {exc}")
         raise

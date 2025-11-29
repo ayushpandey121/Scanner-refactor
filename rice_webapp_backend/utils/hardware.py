@@ -1,3 +1,4 @@
+# utils/hardware.py
 """
 Hardware ID generation utilities
 Generates consistent hardware fingerprints based on:
@@ -23,6 +24,14 @@ def get_hardware_id():
     Returns a consistent 16-character uppercase hex string
     
     This MUST match the algorithm in Electron's main.js getHardwareInfo()
+    
+    Returns:
+        str: 16-character uppercase hex string
+    
+    Example:
+        >>> hw_id = get_hardware_id()
+        >>> print(hw_id)
+        'A1B2C3D4E5F6G7H8'
     """
     try:
         hw_info = get_hardware_info()
@@ -45,7 +54,21 @@ def get_hardware_id():
 def get_hardware_info():
     """
     Get detailed hardware information
-    Returns dict with uuid, baseboard, mac, fingerprint, and fpHash
+    
+    Returns:
+        dict: Hardware information
+            {
+                'uuid': str,
+                'baseboard': str,
+                'mac': str,
+                'fingerprint': str,
+                'fpHash': str
+            }
+    
+    Example:
+        >>> info = get_hardware_info()
+        >>> print(info['uuid'])
+        'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX'
     """
     uuid = ''
     baseboard = ''
@@ -57,6 +80,14 @@ def get_hardware_info():
         uuid = get_windows_uuid()
         baseboard = get_windows_baseboard()
         mac = get_windows_mac()
+    elif system == 'Darwin':  # macOS
+        uuid = get_mac_uuid()
+        baseboard = get_mac_serial()
+        mac = get_mac_mac()
+    elif system == 'Linux':
+        uuid = get_linux_uuid()
+        baseboard = get_linux_serial()
+        mac = get_linux_mac()
     
     # Create fingerprint exactly like Electron's main.js
     fingerprint = f"{uuid}|{baseboard}|{mac}"
@@ -71,7 +102,9 @@ def get_hardware_info():
     }
 
 
-# ============ Windows Hardware Detection ============
+# ============================================================================
+# WINDOWS HARDWARE DETECTION
+# ============================================================================
 
 def get_windows_uuid():
     """
@@ -150,3 +183,127 @@ def get_windows_mac():
     
     return ''
 
+
+# ============================================================================
+# MACOS HARDWARE DETECTION
+# ============================================================================
+
+def get_mac_uuid():
+    """Get hardware UUID on macOS"""
+    try:
+        result = subprocess.run(
+            ['system_profiler', 'SPHardwareDataType'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            for line in result.stdout.split('\n'):
+                if 'Hardware UUID' in line:
+                    return line.split(':')[1].strip()
+    except Exception as e:
+        logger.warning(f"Failed to get macOS UUID: {e}")
+    return ''
+
+
+def get_mac_serial():
+    """Get serial number on macOS"""
+    try:
+        result = subprocess.run(
+            ['system_profiler', 'SPHardwareDataType'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            for line in result.stdout.split('\n'):
+                if 'Serial Number' in line:
+                    return line.split(':')[1].strip()
+    except Exception as e:
+        logger.warning(f"Failed to get macOS serial: {e}")
+    return ''
+
+
+def get_mac_mac():
+    """Get MAC address on macOS"""
+    try:
+        result = subprocess.run(
+            ['ifconfig'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            for line in result.stdout.split('\n'):
+                if 'ether' in line:
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        return parts[1].strip()
+    except Exception as e:
+        logger.warning(f"Failed to get macOS MAC: {e}")
+    return ''
+
+
+# ============================================================================
+# LINUX HARDWARE DETECTION
+# ============================================================================
+
+def get_linux_uuid():
+    """Get machine UUID on Linux"""
+    try:
+        # Try reading from /etc/machine-id
+        with open('/etc/machine-id', 'r') as f:
+            return f.read().strip()
+    except:
+        pass
+    
+    try:
+        # Try dmidecode
+        result = subprocess.run(
+            ['sudo', 'dmidecode', '-s', 'system-uuid'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception as e:
+        logger.warning(f"Failed to get Linux UUID: {e}")
+    
+    return ''
+
+
+def get_linux_serial():
+    """Get serial number on Linux"""
+    try:
+        result = subprocess.run(
+            ['sudo', 'dmidecode', '-s', 'baseboard-serial-number'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception as e:
+        logger.warning(f"Failed to get Linux serial: {e}")
+    return ''
+
+
+def get_linux_mac():
+    """Get MAC address on Linux"""
+    try:
+        result = subprocess.run(
+            ['ip', 'link', 'show'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            for line in result.stdout.split('\n'):
+                if 'link/ether' in line:
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        return parts[1].strip()
+    except Exception as e:
+        logger.warning(f"Failed to get Linux MAC: {e}")
+    return ''
