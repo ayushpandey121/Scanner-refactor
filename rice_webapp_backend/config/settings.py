@@ -39,7 +39,10 @@ class Config:
             DEFAULT_BASE_DIR = os.path.join(os.path.expanduser('~'), '.agsure')
     else:
         # Running in development
-        DEFAULT_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        # Get the directory containing this file (config/)
+        config_dir = os.path.dirname(os.path.abspath(__file__))
+        # Go up one level to the root (rice_webapp_backend/)
+        DEFAULT_BASE_DIR = os.path.dirname(config_dir)
     
     BASE_DIR = os.environ.get("AGSURE_DATA_DIR", DEFAULT_BASE_DIR)
     STATIC_ROOT = os.path.join(BASE_DIR, 'static')
@@ -49,7 +52,7 @@ class Config:
     RESULT_FOLDER = os.path.join(STATIC_ROOT, 'results')
     GRAIN_FOLDER = os.path.join(STATIC_ROOT, 'grains')
     LOG_FOLDER = os.path.join(STATIC_ROOT, 'logs')
-    EXCEL_FOLDER = os.path.join(STATIC_ROOT, 'excels')
+    # EXCEL_FOLDER = os.path.join(STATIC_ROOT, 'excels')
     CROPPED_FOLDER = os.path.join(STATIC_ROOT, 'cropped')
     
     # Configuration files
@@ -88,7 +91,7 @@ class Config:
             cls.RESULT_FOLDER,
             cls.GRAIN_FOLDER,
             cls.LOG_FOLDER,
-            cls.EXCEL_FOLDER,
+            # cls.EXCEL_FOLDER,
             cls.CROPPED_FOLDER
         ]
     

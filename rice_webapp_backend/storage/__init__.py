@@ -1,4 +1,4 @@
-# storage/__init__.py
+# rice_webapp_backend/storage/__init__.py
 """
 Storage module for file operations (S3 and local)
 Handles model files, activation data, and local file storage
@@ -14,7 +14,11 @@ from .s3_activation import (
     get_activation_data,
     update_activation_data,
     get_device_id_from_s3,
-    is_key_expired
+    is_key_expired,
+    # Add these missing imports:
+    get_activation_by_key,
+    get_activation_by_hardware_id,
+    update_login_status
 )
 from .local_storage import (
     LocalStorage,
@@ -38,6 +42,10 @@ __all__ = [
     'update_activation_data',
     'get_device_id_from_s3',
     'is_key_expired',
+    # Add these to __all__:
+    'get_activation_by_key',
+    'get_activation_by_hardware_id',
+    'update_login_status',
     # Local Storage
     'LocalStorage',
     'save_image',

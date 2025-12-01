@@ -25,7 +25,7 @@ from defects import (
     calculate_br_statistics,
     is_broken_grain
 )
-from quality import determine_sample_type, predict_kett
+from quality import predict_kett
 from storage import LocalStorage
 from storage.s3_models import get_local_model_paths
 
@@ -141,13 +141,20 @@ def predict():
         # ====================================================================
         logger.info("Extracting grains")
         try:
-            grain_images, grain_info_list, result_image = extract_grains(
+            # Updated: Extract grains returns a single list of grain data
+            extracted_grains = extract_grains(
                 cropped_image, base_name, pixels_per_metric
             )
             
-            if not grain_images:
+            if not extracted_grains:
                 logger.error("No grains found")
                 return jsonify({"error": "No grains detected in image"}), 400
+            
+            # Generate result image (visualize bounding boxes)
+            result_image = cropped_image.copy()
+            for _, _, bbox, _ in extracted_grains:
+                x, y, w, h = bbox
+                cv2.rectangle(result_image, (x, y), (x+w, y+h), (0, 255, 0), 2)
                 
         except Exception as e:
             logger.error(f"Grain extraction error: {str(e)}")
@@ -160,14 +167,8 @@ def predict():
         exclude_flags_dict = {}
         filename_to_coords = {}
         
-        for item, grain_info in zip(grain_images, grain_info_list):
-            if len(item) == 4:
-                padded_image, filename, bbox, exclude_grain = item
-            else:
-                padded_image, filename, bbox = item
-                exclude_grain = False
-            
-            exclude_grain = grain_info.get('exclude_grain', exclude_grain)
+        # Updated loop for extracted_grains
+        for padded_image, filename, bbox, exclude_grain in extracted_grains:
             exclude_flags_dict[filename] = exclude_grain
             
             grain_path = os.path.join(padded_dir, filename)
@@ -176,7 +177,7 @@ def predict():
             coords = [int(coord) for coord in bbox]
             filename_to_coords[filename] = coords
         
-        num_grains = len(grain_images)
+        num_grains = len(extracted_grains)
         logger.info(f"Extracted {num_grains} grains")
         
         # ====================================================================
@@ -228,9 +229,6 @@ def predict():
             avg_r = sum(g['R'] for g in all_rgb_values) / len(all_rgb_values)
             avg_g = sum(g['G'] for g in all_rgb_values) / len(all_rgb_values)
             avg_b = sum(g['B'] for g in all_rgb_values) / len(all_rgb_values)
-            
-            sample_type = determine_sample_type(avg_r, avg_b)
-            logger.info(f"Sample type: {sample_type} (R={avg_r:.2f}, B={avg_b:.2f})")
             
             # Calculate (B-R) statistics for discoloration
             avg_br, std_br = calculate_br_statistics(all_rgb_values)
@@ -338,12 +336,13 @@ def predict():
         # Calculate statistics
         statistics = {
             'total_grains': len(results),
-            'avg_length': sum(g['length'] for g in results) / len(results) if results else 0,
-            'avg_breadth': sum(g['width'] for g in results) / len(results) if results else 0,
+            'avg_length': round(sum(g['length'] for g in results) / len(results), 2) if results else 0,
+            'avg_breadth': round(sum(g['width'] for g in results) / len(results), 2) if results else 0,
             'chalky_count': sum(1 for g in results if g['chalky'] == 'Yes'),
             'discolored_count': sum(1 for g in results if g['discolor'] == 'YES'),
             'broken_count': sum(1 for g in results if g['broken'])
         }
+
         
         # Predict Kett value (using full dataset RGB averages)
         try:
@@ -392,7 +391,11 @@ def predict():
         # ====================================================================
         excel_url = None
         kett_excel_url = None
-        
+        # COMMENTED OUT: Excel creation and saving functionality
+        """
+        excel_url = None
+        kett_excel_url = None
+
         if results:
             try:
                 # Full Excel file
@@ -407,12 +410,12 @@ def predict():
                     'Discoloration': g['discolor'],
                     'Chalky': g['chalky']
                 } for g in results]
-                
+
                 excel_filename = f"{base_name}_measurements.xlsx"
                 df = pd.DataFrame(excel_data)
                 LocalStorage.save_excel_file(df, excel_filename)
                 excel_url = f"/excel/{excel_filename}"
-                
+
                 # Kett Excel (non-discolored only)
                 kett_data = [
                     {
@@ -424,15 +427,16 @@ def predict():
                     }
                     for row in excel_data if row['Discoloration'] == 'NO'
                 ]
-                
+
                 if kett_data:
                     kett_excel_filename = f"{base_name}_kett.xlsx"
                     kett_df = pd.DataFrame(kett_data)
                     LocalStorage.save_excel_file(kett_df, kett_excel_filename)
                     kett_excel_url = f"/excel/{kett_excel_filename}"
-                    
+
             except Exception as e:
                 logger.error(f"Failed to create Excel files: {e}")
+        """
         
         # Save result image
         result_image_filename = f"{base_name}_result.jpg"
@@ -444,7 +448,6 @@ def predict():
             "request_id": request_id,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
             "filename": file.filename,
-            "sample_type": sample_type,
             "pixels_per_metric": pixels_per_metric,
             "parameters": {
                 "minlen": minlen,
@@ -454,8 +457,6 @@ def predict():
             "statistics": statistics,
             "grains": results,
             "cropped_url": cropped_url,
-            "excel_url": excel_url,
-            "kett_excel_url": kett_excel_url,
             "duration": time.time() - start_time,
             "input_url": f"/upload/{file.filename}",
             "output_image_url": output_image_url
@@ -466,15 +467,12 @@ def predict():
         # Build response
         response = {
             "input_url": f"/upload/{file.filename}",
-            "sample_type": sample_type,
             "result": {
                 "statistics": statistics,
                 "grain": results
             },
             "cropped_url": cropped_url,
             "pixels_per_metric": round(pixels_per_metric, 2),
-            "excel_url": excel_url,
-            "kett_excel_url": kett_excel_url,
             "parameters": {
                 "minlen": minlen,
                 "chalky_percentage": chalky_percentage,

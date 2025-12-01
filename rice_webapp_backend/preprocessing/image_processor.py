@@ -1,4 +1,4 @@
-# preprocessing/image_processor.py
+# rice_webapp_backend/preprocessing/image_processor.py
 """
 Complete image preprocessing: cropping, grain extraction, watershed segmentation
 Combines functionality from preprocessing.py and image_utils.py
@@ -155,9 +155,10 @@ class ImageProcessor:
             grain_crop = grain_masked[y:y+h, x:x+w]
             mask_crop = mask[y:y+h, x:x+w]
             
-            # Set background to black
+            # Set background to CYAN instead of Black
             grain_rgb = grain_crop.copy()
-            grain_rgb[mask_crop == 0] = (0, 0, 0)
+            # Changed from (0, 0, 0) to (255, 255, 0)
+            grain_rgb[mask_crop == 0] = (255, 255, 0)
             
             grains.append((grain_rgb, (x, y, w, h), contour))
         

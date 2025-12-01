@@ -4,7 +4,6 @@ Utility functions module
 Hardware detection, validation, and helper functions
 """
 
-from .hardware import get_hardware_id, get_hardware_info
 from .helpers import (
     validate_rgb,
     validate_length,
@@ -15,9 +14,6 @@ from .helpers import (
 )
 
 __all__ = [
-    # Hardware
-    'get_hardware_id',
-    'get_hardware_info',
     # Helpers
     'validate_rgb',
     'validate_length',
