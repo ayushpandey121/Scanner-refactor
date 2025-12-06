@@ -105,7 +105,7 @@ def predict():
                                         default=DEFAULT_CHALKY_PERCENTAGE)
     rice_variety = request.form.get('rice_variety', default='non_sella')
 
-    logger.info(f"Parameters: minlen={minlen}mm, chalky={chalky_percentage}%, variety={rice_variety}")
+    # logger.info(f"Parameters: minlen={minlen}mm, chalky={chalky_percentage}%, variety={rice_variety}")
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         # ====================================================================
@@ -118,7 +118,7 @@ def predict():
         LocalStorage.save_upload(input_path, file.filename)
         
         # Crop image
-        logger.info("Cropping input image")
+        # logger.info("Cropping input image")
         cropped_image = decode_and_crop_image(input_path)
         if cropped_image is None:
             return jsonify({"error": "Failed to crop input image"}), 500
@@ -129,7 +129,7 @@ def predict():
         cropped_url = f"http://localhost:{Config.PORT}/cropped-image/{cropped_filename}"
         
         # Calculate PPM
-        logger.info("Calculating PPM")
+        # logger.info("Calculating PPM")
         pixels_per_metric, _ = calculate_pixels_per_metric(cropped_image)
         if pixels_per_metric is None:
             return jsonify({"error": "Failed to calculate pixels per metric"}), 500

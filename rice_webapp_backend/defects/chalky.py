@@ -15,25 +15,26 @@ from config.constants import (
     BRIGHTNESS_VARIANCE_THRESHOLD,
     TH1_MIN_CHALKY,
     TH1_MAX_CHALKY,
-    LOWER_CYAN_BGR,
-    UPPER_CYAN_BGR
+    LOWER_BG_BGR,
+    UPPER_BG_BGR
 )
 
 logger = logging.getLogger(__name__)
 
 
-def create_cyan_mask(image):
+def create_background_mask(image):
     """
-    Create binary mask where cyan pixels are white (255)
+    Create binary mask where background pixels are white (255)
+    Updated to use blue background instead of cyan
     
     Args:
-        image: BGR image with cyan background
+        image: BGR image with blue background
     
     Returns:
         Binary mask (uint8)
     """
-    cyan_mask = cv2.inRange(image, LOWER_CYAN_BGR, UPPER_CYAN_BGR)
-    return cyan_mask
+    bg_mask = cv2.inRange(image, LOWER_BG_BGR, UPPER_BG_BGR)
+    return bg_mask
 
 
 def calculate_chalkiness_percentage(image, use_adaptive=True):
@@ -41,7 +42,7 @@ def calculate_chalkiness_percentage(image, use_adaptive=True):
     Calculate chalkiness percentage using variance-based filtering
     
     Args:
-        image: Input BGR image with cyan background
+        image: Input BGR image with blue background
         use_adaptive: If True, use variance filtering to reduce false positives
     
     Returns:
@@ -54,9 +55,9 @@ def calculate_chalkiness_percentage(image, use_adaptive=True):
         4. This simple approach works better than complex adaptive methods
     """
     try:
-        # Create mask to exclude cyan background
-        cyan_mask = create_cyan_mask(image)
-        grain_mask = cv2.bitwise_not(cyan_mask)  # Grains are NOT cyan
+        # Create mask to exclude blue background
+        bg_mask = create_background_mask(image)
+        grain_mask = cv2.bitwise_not(bg_mask)  # Grains are NOT blue
         
         # Convert to grayscale
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -64,7 +65,7 @@ def calculate_chalkiness_percentage(image, use_adaptive=True):
         # Get only grain pixels
         grain_pixels = gray_image[grain_mask > 0]
         
-        # Total grain pixels (excluding cyan background)
+        # Total grain pixels (excluding blue background)
         total_grain_pixels = len(grain_pixels)
         
         if total_grain_pixels == 0:
@@ -141,7 +142,7 @@ def detect_chalkiness(image, threshold_percentage=CHALKY_PERCENTAGE_THRESHOLD, u
     Detect if grain is chalky based on threshold
     
     Args:
-        image: Input BGR image with cyan background
+        image: Input BGR image with blue background
         threshold_percentage: Threshold for chalkiness (default 30%)
         use_adaptive: Use variance-based filtering (recommended: True)
     
@@ -177,7 +178,7 @@ class ChalkyDetector:
         Detect chalkiness in grain image
 
         Args:
-            image: BGR image
+            image: BGR image with blue background
             threshold_percentage: Threshold for chalkiness
 
         Returns:

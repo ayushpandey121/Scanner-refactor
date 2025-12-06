@@ -53,8 +53,6 @@ hidden_imports = [
     'pandas',
     'openpyxl',
     'scipy',
-    'torch',
-    'torchvision',
     'imutils',
     'skimage',
 ]

@@ -35,8 +35,8 @@ class GrainMeasurements:
         try:
             # Load and preprocess
             img = ImageProcessor.load_image(image_path)
-            cyan_mask = ImageProcessor.create_cyan_mask(img)
-            thresh = cv2.bitwise_not(cyan_mask)
+            bg_mask = ImageProcessor.create_background_mask(img)  # Updated method
+            thresh = cv2.bitwise_not(bg_mask)
             
             # Find largest contour
             contours, _ = cv2.findContours(
@@ -72,7 +72,7 @@ class GrainMeasurements:
             breadth = min(dimA, dimB)
             
             # Calculate RGB
-            avg_r, avg_g, avg_b = GrainMeasurements.calculate_rgb(img, cyan_mask)
+            avg_r, avg_g, avg_b = GrainMeasurements.calculate_rgb(img, bg_mask)
             
             return {
                 "Image Name": image_path,
@@ -88,15 +88,17 @@ class GrainMeasurements:
             return None
     
     @staticmethod
-    def calculate_rgb(image, cyan_mask=None):
-        """Calculate average RGB values (excluding cyan background)"""
+    def calculate_rgb(image, bg_mask=None):
+        """
+        Calculate average RGB values (excluding blue background)
+        """
         try:
             img_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             
             # Create grain mask
-            if cyan_mask is None:
-                cyan_mask = ImageProcessor.create_cyan_mask(image)
-            grain_mask = cv2.bitwise_not(cyan_mask)
+            if bg_mask is None:
+                bg_mask = ImageProcessor.create_background_mask(image)
+            grain_mask = cv2.bitwise_not(bg_mask)
             
             # Extract grain pixels
             grain_mask_bool = grain_mask > 0

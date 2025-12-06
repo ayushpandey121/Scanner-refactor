@@ -6,6 +6,7 @@ Uses statistical approach: compares grain's (B-R) value against dataset average
 
 import numpy as np
 import logging
+from config.constants import DISCOLORATION_THRESHOLD_OFFSET
 
 logger = logging.getLogger(__name__)
 
@@ -40,10 +41,10 @@ def calculate_br_statistics(grains_with_rgb):
     std_br = float(np.std(br_values))
     threshold = avg_br - 11  # Fixed threshold offset
     
-    logger.info(
-        f"(B-R) statistics: Avg={avg_br:.2f}, Std={std_br:.2f}, "
-        f"Threshold={threshold:.2f}"
-    )
+    # logger.info(
+    #     f"(B-R) statistics: Avg={avg_br:.2f}, Std={std_br:.2f}, "
+    #     f"Threshold={threshold:.2f}"
+    # )
     
     return avg_br, std_br
 
@@ -76,7 +77,7 @@ def classify_discoloration(b_value, r_value, avg_br, threshold_offset=11):
         'YES'  # grain (B-R) = -25, threshold = -26, -25 > -26 (but close)
     """
     br_value = b_value - r_value
-    threshold = avg_br - threshold_offset
+    threshold = avg_br - DISCOLORATION_THRESHOLD_OFFSET
     
     if br_value < threshold:
         logger.debug(
@@ -105,7 +106,7 @@ def is_discolored(b_value, r_value, avg_br, threshold_offset=11):
     Returns:
         bool: True if discolored, False otherwise
     """
-    result = classify_discoloration(b_value, r_value, avg_br, threshold_offset)
+    result = classify_discoloration(b_value, r_value, avg_br, DISCOLORATION_THRESHOLD_OFFSET)
     return result == "YES"
 
 
@@ -120,7 +121,7 @@ def get_discoloration_threshold(avg_br, threshold_offset=11):
     Returns:
         float: Threshold value
     """
-    return avg_br - threshold_offset
+    return avg_br - DISCOLORATION_THRESHOLD_OFFSET
 
 
 class DiscolorDetector:

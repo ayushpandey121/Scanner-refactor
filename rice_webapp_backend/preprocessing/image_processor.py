@@ -1,7 +1,6 @@
 # rice_webapp_backend/preprocessing/image_processor.py
 """
 Complete image preprocessing: cropping, grain extraction, watershed segmentation
-Combines functionality from preprocessing.py and image_utils.py
 """
 import cv2
 import numpy as np
@@ -9,8 +8,8 @@ import logging
 from scipy.spatial import distance as dist
 from imutils import perspective
 from config.constants import (
-    LOWER_CYAN_BGR, UPPER_CYAN_BGR, HARDCODED_PPM,
-    MIN_CONTOUR_AREA
+    LOWER_BG_BGR, UPPER_BG_BGR, HARDCODED_PPM,
+    MIN_CONTOUR_AREA, BG_COLOR_BGR
 )
 
 logger = logging.getLogger(__name__)
@@ -28,9 +27,13 @@ class ImageProcessor:
         return img
     
     @staticmethod
-    def create_cyan_mask(image):
-        """Create binary mask where cyan pixels are white (255)"""
-        return cv2.inRange(image, LOWER_CYAN_BGR, UPPER_CYAN_BGR)
+    def create_background_mask(image):
+        """
+        Create binary mask where background pixels are white (255)
+        Updated to detect blue background instead of cyan
+        """
+        return cv2.inRange(image, LOWER_BG_BGR, UPPER_BG_BGR)
+
     
     @staticmethod
     def decode_and_crop_image(image_path):
@@ -41,8 +44,8 @@ class ImageProcessor:
         try:
             img = ImageProcessor.load_image(image_path)
             height, width = img.shape[:2]
-            logger.info(f"Image dimensions: {width}x{height}")
-            logger.info("Using full image without cropping")
+            # logger.info(f"Image dimensions: {width}x{height}")
+            # logger.info("Using full image without cropping")
             return img
         except Exception as e:
             logger.error(f"Error in decode_and_crop_image: {str(e)}")
@@ -51,12 +54,14 @@ class ImageProcessor:
     @staticmethod
     def get_pixels_per_metric():
         """Returns hardcoded PPM value"""
-        logger.info(f"Using hardcoded PPM: {HARDCODED_PPM}")
+        # logger.info(f"Using hardcoded PPM: {HARDCODED_PPM}")
         return HARDCODED_PPM
     
     @staticmethod
     def pad_image_to_dims(image, target_dims=(500, 500)):
-        """Pad image to target dimensions with CYAN background"""
+        """
+        Pad image to target dimensions with BLUE background
+        """
         h, w = image.shape[:2]
         target_h, target_w = target_dims
         
@@ -68,10 +73,10 @@ class ImageProcessor:
         left = pad_w // 2
         right = pad_w - left
         
-        cyan_color = [255, 255, 0]  # BGR format
+        # Use blue color from constants
         return cv2.copyMakeBorder(
             image, top, bottom, left, right, 
-            cv2.BORDER_CONSTANT, value=cyan_color
+            cv2.BORDER_CONSTANT, value=BG_COLOR_BGR
         )
     
     @staticmethod
@@ -86,9 +91,9 @@ class ImageProcessor:
         from scipy import ndimage as ndi
         from skimage.segmentation import watershed
         
-        # Create mask: grains are NOT cyan
-        cyan_mask = ImageProcessor.create_cyan_mask(image)
-        thresh = cv2.bitwise_not(cyan_mask)
+        # Create mask: grains are not blue
+        blue_mask = ImageProcessor.create_background_mask(image)
+        thresh = cv2.bitwise_not(blue_mask)
         
         # Morphological operations
         kernel = np.ones((3, 3), np.uint8)
@@ -135,7 +140,9 @@ class ImageProcessor:
     
     @staticmethod
     def extract_grains_from_labels(image, labels, num_grains):
-        """Extract individual grains from watershed labels"""
+        """
+        Extract individual grains from watershed labels
+        """
         grains = []
         
         for label_id in range(1, num_grains + 1):
@@ -155,10 +162,9 @@ class ImageProcessor:
             grain_crop = grain_masked[y:y+h, x:x+w]
             mask_crop = mask[y:y+h, x:x+w]
             
-            # Set background to CYAN instead of Black
+            # Set background to BLUE using constant
             grain_rgb = grain_crop.copy()
-            # Changed from (0, 0, 0) to (255, 255, 0)
-            grain_rgb[mask_crop == 0] = (255, 255, 0)
+            grain_rgb[mask_crop == 0] = BG_COLOR_BGR
             
             grains.append((grain_rgb, (x, y, w, h), contour))
         
@@ -166,7 +172,10 @@ class ImageProcessor:
     
     @staticmethod
     def align_grain_vertically(image, contour):
-        """Align grain image vertically using PCA"""
+        """
+        Align grain image vertically using PCA
+        Updated to use blue background for border
+        """
         if not contour is not None and len(contour) > 0:
             logger.warning("No contours provided for alignment")
             return image
@@ -185,17 +194,17 @@ class ImageProcessor:
             center = (w // 2, h // 2)
             rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
             
-            cyan_color = [255, 255, 0]
+            # Use blue color for border
             rotated_image = cv2.warpAffine(
                 image, rotation_matrix, (w, h), 
                 flags=cv2.INTER_LINEAR,
                 borderMode=cv2.BORDER_CONSTANT,
-                borderValue=cyan_color
+                borderValue=BG_COLOR_BGR
             )
             
             # Ensure tip is upwards (additional orientation correction)
-            cyan_mask = ImageProcessor.create_cyan_mask(rotated_image)
-            binary_rotated = cv2.bitwise_not(cyan_mask)
+            bg_mask = ImageProcessor.create_background_mask(rotated_image)
+            binary_rotated = cv2.bitwise_not(bg_mask)
             contours_rotated, _ = cv2.findContours(
                 binary_rotated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
             )
@@ -227,12 +236,12 @@ class ImageProcessor:
     @staticmethod
     def extract_all_grains(image, image_name, pixels_per_metric):
         """
-        Complete grain extraction pipeline (Stage 1)
+        Complete grain extraction pipeline 
         
         Returns:
             List of tuples: (padded_image, filename, bbox, exclude_grain)
         """
-        logger.info(f"Extracting grains from: {image_name}")
+        # logger.info(f"Extracting grains from: {image_name}")
         
         # Watershed segmentation
         labels, num_grains = ImageProcessor.separate_touching_grains(
@@ -243,7 +252,7 @@ class ImageProcessor:
             logger.warning("No grains detected")
             return []
         
-        logger.info(f"Detected {num_grains} grains using watershed")
+        # logger.info(f"Detected {num_grains} grains using watershed")
         
         # Extract individual grains
         grains = ImageProcessor.extract_grains_from_labels(image, labels, num_grains)
@@ -253,8 +262,8 @@ class ImageProcessor:
         avg_area = sum(contour_areas) / len(contour_areas) if contour_areas else 0
         threshold_area = avg_area + 1000
         
-        logger.info(f"Average contour area: {avg_area:.2f}")
-        logger.info(f"Exclusion threshold: {threshold_area:.2f}")
+        # logger.info(f"Average contour area: {avg_area:.2f}")
+        # logger.info(f"Exclusion threshold: {threshold_area:.2f}")
         
         # Process each grain
         result = []

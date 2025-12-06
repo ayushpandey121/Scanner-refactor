@@ -177,7 +177,7 @@ class LocalStorage:
                 # File path
                 shutil.copy(file_or_path, filepath)
             
-            logger.info(f"Upload saved: {filepath}")
+            # logger.info(f"Upload saved: {filepath}")
             return filepath
         except Exception as e:
             logger.error(f"Error saving upload: {e}")
@@ -188,7 +188,7 @@ class LocalStorage:
         """Save cropped image"""
         filepath = os.path.join(Config.CROPPED_FOLDER, filename)
         if save_image(image, filepath):
-            logger.info(f"Cropped image saved: {filepath}")
+            # logger.info(f"Cropped image saved: {filepath}")
             return filepath
         return None
     
@@ -221,7 +221,7 @@ class LocalStorage:
             filepath = os.path.join(grain_folder, filename)
             
             if save_image(image_or_path, filepath):
-                logger.info(f"Grain image saved: {filepath}")
+                # logger.info(f"Grain image saved: {filepath}")
                 return f"{base_name}/{filename}"
             return None
         except Exception as e:

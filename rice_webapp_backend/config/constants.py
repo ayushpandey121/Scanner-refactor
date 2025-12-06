@@ -11,15 +11,10 @@ import numpy as np
 # ============================================================================
 
 # Pixels per metric (hardcoded value)
-HARDCODED_PPM = 15.53
+HARDCODED_PPM = 15.91
 
 # Border crop coordinates (if needed)
 BORDER_CROP_COORDINATES = (650, 50, 3950, 3350)
-
-# # Strip/reference measurements
-# STRIP_WIDTH = 9.98
-# MINIMUM_PPM = 15.5
-# MAXIMUM_PPM = 25.5
 
 # Contour detection
 MIN_CONTOUR_AREA = 500
@@ -32,12 +27,15 @@ CHALKY_MARGIN = 10
 CHALKY_PADDING = 20
 
 # ============================================================================
-# COLOR DETECTION - RGB/BGR RANGES (OpenCV uses BGR format)
+# COLOR DETECTION CONSTANTS
 # ============================================================================
 
-# Cyan background detection (BGR format)
-LOWER_CYAN_BGR = np.array([60, 50, 0])      # Lower bound for cyan (B, G, R)
-UPPER_CYAN_BGR = np.array([255, 255, 93])   # Upper bound for cyan (B, G, R)
+# Blue background detection (BGR format)
+LOWER_BG_BGR = np.array([0, 0, 0])     # Lower bound: [B, G, R]
+UPPER_BG_BGR = np.array([230, 150, 43])   # Upper bound: [B, G, R]
+
+# Use middle values for padding: B=175, G=100, R=30
+BG_COLOR_BGR = [175, 100, 30]  # Blue background in BGR for padding/borders
 
 # ============================================================================
 # CHALKINESS DETECTION CONSTANTS
@@ -49,7 +47,7 @@ TH1_MAX_CHALKY = 50     # Maximum dark pixel threshold
 TH2_MIN_CHALKY = 178    # Minimum bright pixel threshold (not used in current implementation)
 
 # Fixed bright threshold for chalky detection
-FIXED_BRIGHT_THRESHOLD = 178
+FIXED_BRIGHT_THRESHOLD = 187
 
 # Chalkiness percentage threshold (default)
 CHALKY_PERCENTAGE_THRESHOLD = 30.0
@@ -59,12 +57,9 @@ DEFAULT_CHALKY_PERCENTAGE = 30.0
 MIN_BRIGHT_PIXEL_COUNT = 50         # Minimum bright pixels to consider chalky
 BRIGHTNESS_VARIANCE_THRESHOLD = 90   # Variance threshold (chalky = high variance)
 
-
-
 # RGB-based discoloration threshold offset
 # Threshold = avg(B-R) - DISCOLORATION_THRESHOLD_OFFSET
-DISCOLORATION_THRESHOLD_OFFSET = 11
-
+DISCOLORATION_THRESHOLD_OFFSET = 12
 
 # ============================================================================
 # BROKEN GRAIN DETECTION CONSTANTS
@@ -82,4 +77,3 @@ KETT_INTERPOLATION_METHOD = "b_channel_linear"
 
 # Monotonic interpolation tolerance
 KETT_MONOTONIC_TOLERANCE = 0.01
-

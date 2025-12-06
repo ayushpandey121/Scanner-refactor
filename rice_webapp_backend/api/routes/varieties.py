@@ -185,7 +185,7 @@ def add_quality(variety_name, sub_variety_name):
             return jsonify({"error": "Sub-variety not found"}), 404
 
         quality_data = request.get_json()
-        if not quality_data or 'quality' not in quality_data or 'length' not in quality_data or 'chalkyPercentage' not in quality_data:
+        if not quality_data or 'quality' not in quality_data or 'length' not in quality_data:
             return jsonify({"error": "Invalid data format"}), 400
 
         # Initialize qualities array if it doesn't exist
@@ -198,8 +198,7 @@ def add_quality(variety_name, sub_variety_name):
 
         sub_variety['qualities'].append({
             'quality': quality_data['quality'],
-            'length': quality_data['length'],
-            'chalkyPercentage': quality_data['chalkyPercentage']
+            'length': quality_data['length']
         })
 
         if save_json(data, Config.VARIETIES_FILE):
@@ -257,9 +256,6 @@ def update_quality(variety_name, sub_variety_name, quality):
 
         if 'length' in update_data:
             quality_item['length'] = update_data['length']
-
-        if 'chalkyPercentage' in update_data:
-            quality_item['chalkyPercentage'] = update_data['chalkyPercentage']
 
         if save_json(data, Config.VARIETIES_FILE):
             return jsonify({"message": "Quality updated successfully", "subVariety": sub_variety}), 200
