@@ -17,7 +17,8 @@ from api.routes import (
     file_bp,
     health_bp,
     report_bp,
-    varieties_bp
+    varieties_bp,
+    sample_details_bp  # Added sample details blueprint
 )
 
 # Set up logging
@@ -85,6 +86,7 @@ def create_app():
     app.register_blueprint(activation_bp)
     app.register_blueprint(report_bp)
     app.register_blueprint(varieties_bp)
+    app.register_blueprint(sample_details_bp)  # Register sample details blueprint
 
     logger.info("Application initialized successfully")
     logger.info(f"All files will be stored in: {Config.STATIC_ROOT}")

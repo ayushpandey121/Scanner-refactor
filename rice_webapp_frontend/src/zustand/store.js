@@ -3,7 +3,6 @@ import { create } from 'zustand';
 const useRiceStore = create((set, get) => ({
   grains: null,
   reportData: null,
-  // chartData: null,
   previewImage: null,
   croppedImageUrl: null,
   fileName: null,
@@ -15,12 +14,18 @@ const useRiceStore = create((set, get) => ({
   parameters: null,
   analysisStatus: null, // 'loading', 'completed', 'error'
   analysisError: null,
+  sampleDetails: null,
+  
+  // NEW: Variety information fields
+  selectedVariety: null,
+  selectedSubVariety: null,
+  selectedVarietyData: null,
+  selectedSubVarietyData: null,
 
   setRiceData: (data) => {
     const state = {
       grains: data.grains,
       reportData: data.reportData,
-      // chartData: data.chartData,
       previewImage: data.previewImage,
       croppedImageUrl: data.croppedImageUrl || null,
       fileName: data.fileName,
@@ -29,8 +34,14 @@ const useRiceStore = create((set, get) => ({
       parameters: data.parameters,
       analysisStatus: data.analysisStatus,
       analysisError: data.analysisError,
+      sampleDetails: data.sampleDetails || null,
       selectedGrainId: null,
       hoveredGrainId: null,
+      // NEW: Include variety data if provided
+      selectedVariety: data.selectedVariety !== undefined ? data.selectedVariety : get().selectedVariety,
+      selectedSubVariety: data.selectedSubVariety !== undefined ? data.selectedSubVariety : get().selectedSubVariety,
+      selectedVarietyData: data.selectedVarietyData !== undefined ? data.selectedVarietyData : get().selectedVarietyData,
+      selectedSubVarietyData: data.selectedSubVarietyData !== undefined ? data.selectedSubVarietyData : get().selectedSubVarietyData,
     };
 
     // Save to localStorage
@@ -58,7 +69,6 @@ const useRiceStore = create((set, get) => ({
     set({
       grains: null,
       reportData: null,
-      // chartData: null,
       previewImage: null,
       croppedImageUrl: null,
       fileName: null,
@@ -70,6 +80,12 @@ const useRiceStore = create((set, get) => ({
       parameters: null,
       analysisStatus: null,
       analysisError: null,
+      sampleDetails: null,
+      // NEW: Reset variety data
+      selectedVariety: null,
+      selectedSubVariety: null,
+      selectedVarietyData: null,
+      selectedSubVarietyData: null,
     });
   },
 
@@ -92,28 +108,6 @@ const useRiceStore = create((set, get) => ({
     analysisError: error,
   }),
 
-  // recalculateChartData: () => {
-  //   const { grains } = get();
-
-  //   if (!grains) return;
-
-  //   const categoryCount = {};
-
-  //   grains.forEach((grain) => {
-  //     const category = grain.category[0];
-  //     categoryCount[category] = (categoryCount[category] || 0) + 1;
-  //   });
-
-  //   const total = Object.values(categoryCount).reduce((sum, count) => sum + count, 0);
-
-  //   const chartData = Object.entries(categoryCount).map(([name, count]) => ({
-  //     name,
-  //     count,
-  //     percentage: ((count / total) * 100).toFixed(2),
-  //   }));
-
-  //   set({ chartData });
-  // },
   updateChartDataFromGrains: () => {
     const grains = get().grains;
     const reportData = get().reportData;

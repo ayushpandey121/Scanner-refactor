@@ -24,7 +24,7 @@ class EpsonScanner {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         if (this.onStatusChange) {
@@ -78,18 +78,18 @@ class EpsonScanner {
 
       if (response.ok) {
         const data = await response.json();
-        
+
         if (data.success) {
           console.log('✅ Scan completed:', data.file.filename);
-          
+
           // Directly process the completed scan
           await this.processScannedFile(data.file);
-          
+
           this.stopScanning();
-          
-          return { 
-            success: true, 
-            message: 'Scan completed successfully ' 
+
+          return {
+            success: true,
+            message: 'Scan completed successfully '
           };
         } else {
           throw new Error(data.error || 'Scan failed');
@@ -107,18 +107,15 @@ class EpsonScanner {
 
   async processScannedFile(file) {
     try {
-      // console.log('Fetching scanned image from server:', file.filename);
       // Use absolute URL with full Python backend address
       const imageUrl = `http://127.0.0.1:8080/api/scanner/file/${file.filename}`;
-      // console.log('Fetching from:', imageUrl);
-      
+
       const response = await fetch(imageUrl);
-      
+
       if (response.ok) {
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);
-        
-        // console.log('Image loaded successfully, calling onScanComplete');
+
         this.onScanComplete({
           filename: file.filename,
           url: objectUrl,
@@ -138,13 +135,12 @@ class EpsonScanner {
   }
 
   stopScanning() {
-    // console.log('Stopping scan');
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
       this.pollInterval = null;
     }
     this.isScanning = false;
-    
+
     if (this.onStatusChange) {
       this.onStatusChange('idle', null);
     }
@@ -179,7 +175,7 @@ const Upload = () => {
   const [varieties, setVarieties] = useState([]);
   const [selectedVariety, setSelectedVariety] = useState('');
   const [selectedSubVariety, setSelectedSubVariety] = useState('');
-  const [selectedQuality, setSelectedQuality] = useState(null);
+  const [chalkyPercentage, setChalkyPercentage] = useState(30);
 
   const setRiceData = useRiceStore((state) => state.setRiceData);
 
@@ -220,9 +216,8 @@ const Upload = () => {
 
     const scanner = new EpsonScanner({
       apiBase: 'http://localhost:8080/api/scanner',
-      
+
       onScanComplete: (imageData) => {
-        // console.log('✅ Scan completed callback triggered:', imageData.filename);
         setStatusMessage(`✅ Scan completed: ${imageData.filename}`);
         setPreview(imageData.url);
 
@@ -233,13 +228,8 @@ const Upload = () => {
         setSelectedFile(file);
         setScanning(false);
         setButtonMode('analyze'); // Switch to analyze mode after scan completes
-
-        // console.log('Preview and file state updated');
-
-        // Show scan details
-        // alert(`✅ Scan completed successfully!\nFile: ${imageData.filename}\nSize: ${(imageData.size / 1024).toFixed(2)} KB\nResolution: 400 DPI\nColor Mode: Color\nFormat: JPEG (Quality: 85%)`);
       },
-      
+
       onError: (error) => {
         console.error('Scanner error:', error);
         setInitError(error);
@@ -247,9 +237,8 @@ const Upload = () => {
         setStatusMessage('❌ Error: ' + error);
         alert('Scanner Error: ' + error);
       },
-      
+
       onStatusChange: (status, data) => {
-        // console.log('Scanner status changed:', status, data);
         if (status === 'connected') {
           setScannerReady(true);
           setInitError(null);
@@ -283,12 +272,7 @@ const Upload = () => {
     // Check connection on mount
     scanner.checkConnection().then(result => {
       if (result.success) {
-        // console.log('✅ Python scanner service connected');
-        // console.log('Scanner info:', result.data);
         setStatusMessage('✅ Scanner service connected');
-      } else {
-        // console.error('❌ Scanner service not connected:', result.error);
-        // setStatusMessage('❌ Scanner service not running');
       }
     });
 
@@ -321,7 +305,7 @@ const Upload = () => {
 
   const startScanning = async () => {
     console.log('=== Start Scanning ===');
-    
+
     if (!scannerInstance) {
       alert("Scanner not initialized. Please refresh the page.");
       return;
@@ -334,8 +318,6 @@ const Upload = () => {
 
     setScanning(true);
     setStatusMessage('⏳ Starting automated scan...');
-
-    // console.log('Scan settings: 400 DPI, Color, JPEG (Quality: 85%) - HARDCODED in scanner_service.py');
 
     const result = await scannerInstance.startScan();
 
@@ -361,33 +343,14 @@ const Upload = () => {
     const varietyName = e.target.value;
     setSelectedVariety(varietyName);
     setSelectedSubVariety('');
-    setSelectedQuality(null);
   };
 
   const handleSubVarietyChange = (e) => {
     const subVarietyName = e.target.value;
     setSelectedSubVariety(subVarietyName);
-    setSelectedQuality(null);
-  };
-
-  const handleQualityChange = (e) => {
-    const qualityName = e.target.value;
-    if (qualityName === '') {
-      setSelectedQuality(null);
-    } else {
-      const variety = varieties.find(v => v.name === selectedVariety);
-      if (variety) {
-        const subVariety = variety.subVarieties.find(s => s.name === selectedSubVariety);
-        if (subVariety) {
-          const quality = subVariety.qualities.find(q => q.quality === qualityName);
-          setSelectedQuality(quality);
-        }
-      }
-    }
   };
 
   const uploadToAPI = async () => {
-    // console.log("Uploading file:", selectedFile);
     if (!selectedFile) {
       alert("Please scan an image first.");
       return;
@@ -396,11 +359,23 @@ const Upload = () => {
     setLoading(true);
     setStatusMessage('⏳ Analyzing image...');
 
-    // Determine parameters based on selected quality
-    const parameters = selectedQuality ? {
-      minlen: selectedQuality.length,
-      chalky_percentage: selectedQuality.chalkyPercentage
-    } : { minlen: 5.0, chalky_percentage: 30.0 };
+    // Get the selected variety and subvariety data
+    const selectedVarietyData = varieties.find(v => v.name === selectedVariety);
+    const selectedSubVarietyData = selectedVarietyData?.subVarieties.find(s => s.name === selectedSubVariety);
+
+    // Use default parameters since we're not selecting quality anymore
+    const parameters = { minlen: 5.0, chalky_percentage: chalkyPercentage };
+
+    // *** RETRIEVE CORRECTION VALUES FROM LOCALSTORAGE ***
+    const lengthCorrection = parseFloat(localStorage.getItem('length_correction') || '0');
+    const wiCorrection = parseFloat(localStorage.getItem('wi_correction') || '0');
+    const wwCorrection = parseFloat(localStorage.getItem('ww_correction') || '1');
+
+    console.log('📊 Applying corrections:', { 
+      lengthCorrection, 
+      wiCorrection, 
+      wwCorrection 
+    });
 
     // Set analysis status to loading and navigate to details page immediately
     setRiceData({
@@ -409,6 +384,10 @@ const Upload = () => {
       selectedFile: selectedFile,
       analysisStatus: 'loading',
       parameters,
+      selectedVariety: selectedVariety || null,
+      selectedSubVariety: selectedSubVariety || null,
+      selectedVarietyData: selectedVarietyData || null,
+      selectedSubVarietyData: selectedSubVarietyData || null,
     });
 
     navigate("/details");
@@ -416,11 +395,11 @@ const Upload = () => {
     const formData = new FormData();
     formData.append("file", selectedFile);
     formData.append("rice_variety", riceVariety);
-
-    if (selectedQuality) {
-      formData.append("minlen", selectedQuality.length);
-      formData.append("chalky_percentage", selectedQuality.chalkyPercentage);
-    }
+    
+    // *** ADD CORRECTION VALUES TO FORMDATA ***
+    formData.append("length_correction", lengthCorrection);
+    formData.append("wi_correction", wiCorrection);
+    formData.append("ww_correction", wwCorrection);
 
     try {
       const res = await fetch(`${getApiBaseUrl()}/predict`, {
@@ -443,8 +422,6 @@ const Upload = () => {
 
       const stats = result?.result?.statistics;
       const grains = result?.result?.grain;
-
-      // console.log("API Stats:", stats);
 
       if (!stats || !grains) {
         throw new Error("Invalid API response format.");
@@ -473,8 +450,9 @@ const Upload = () => {
 
       const mixture = Object.keys(class_counts).length > 1;
 
+      // *** USE VALUES DIRECTLY (ALREADY CORRECTED IN BACKEND) ***
       const report = {
-        avgLength: stats.avg_length || stats.average_length,
+        avgLength: stats.avg_length,
         avgWidth: stats.avg_breadth || stats.average_width,
         majorityClass: majorityClass,
         mixture: mixture,
@@ -484,6 +462,11 @@ const Upload = () => {
         discolorCount: stats.discolored_count || stats.discolor_count,
         kettValue: stats.kett_value,
       };
+
+      console.log('✅ Analysis completed:', {
+        avgLength: stats.avg_length,
+        kettValue: stats.kett_value
+      });
 
       const date = new Date();
       const chartData = all_class
@@ -504,9 +487,13 @@ const Upload = () => {
         fileName: selectedFile.name,
         date: date.toDateString(),
         selectedFile: selectedFile,
-        parameters: parameters, // Use the parameters determined from selected quality
+        parameters: parameters,
         analysisStatus: 'completed',
         analysisError: null,
+        selectedVariety: selectedVariety || null,
+        selectedSubVariety: selectedSubVariety || null,
+        selectedVarietyData: selectedVarietyData || null,
+        selectedSubVarietyData: selectedSubVarietyData || null,
       });
 
       setStatusMessage('✅ Analysis completed');
@@ -527,10 +514,7 @@ const Upload = () => {
       <div className="main-upload-area">
         <div className="upload-header">
           <h2 className="upload-title">Scan Rice Grains </h2>
-          {/* <p>
-            Connect your EPSON scanner to capture high-resolution images. No UI popups - scans automatically!
-          </p> */}
-          
+
           {/* Status Message */}
           {statusMessage && (
             <div style={{
@@ -563,15 +547,13 @@ const Upload = () => {
                 <ol style={{ marginLeft: '20px', marginTop: '5px' }}>
                   <li>Ensure scanner is connected </li>
                   <li>Ensure scanner is powered on</li>
-                  {/* <li>Install Python dependencies: <code>pip install flask flask-cors pywin32 pillow</code></li> */}
-                  {/* <li>Start the scanner service: <code>python scanner_service.py</code></li> */}
                   <li>Refresh this page</li>
                 </ol>
               </div>
             </div>
           )}
         </div>
-        
+
         <div className="upload-instructions">
           <div className="scanner-section">
             <div className="scanner-preview">
@@ -589,7 +571,7 @@ const Upload = () => {
               <label htmlFor="file-upload" style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
                 Or upload an existing image:
               </label>
-              
+
               <input
                 type="file"
                 id="file-upload"
@@ -597,7 +579,7 @@ const Upload = () => {
                 onChange={handleFileChange}
                 style={{ display: 'block', marginBottom: '15px' }}
               />
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
                 <label htmlFor="rice-type" style={{ marginRight: '10px', fontWeight: '500' }}>
                   Rice Type:
                 </label>
@@ -616,6 +598,23 @@ const Upload = () => {
                   <option value="sella">sella</option>
                   <option value="non_sella">non_sella</option>
                 </select>
+                <label htmlFor="chalky-percentage" style={{ marginLeft: '20px', marginRight: '10px', fontWeight: '500' }}>
+                  Chalky Percentage:
+                </label>
+                <input
+                  type="range"
+                  id="chalky-percentage"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={chalkyPercentage}
+                  onChange={(e) => setChalkyPercentage(Number(e.target.value))}
+                  style={{
+                    marginRight: '10px',
+                    width: '120px'
+                  }}
+                />
+                <span style={{ fontSize: '14px', fontWeight: '500' }}>{chalkyPercentage}%</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
                 <label htmlFor="variety" style={{ marginRight: '10px', fontWeight: '500' }}>
@@ -667,32 +666,6 @@ const Upload = () => {
                   </select>
                 </div>
               )}
-              {selectedSubVariety && (
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                  <label htmlFor="quality" style={{ marginRight: '10px', fontWeight: '500' }}>
-                    Quality:
-                  </label>
-                  <select
-                    id="quality"
-                    value={selectedQuality?.quality || ''}
-                    onChange={handleQualityChange}
-                    style={{
-                      padding: '5px 10px',
-                      borderRadius: '4px',
-                      border: '1px solid #ccc',
-                      fontSize: '14px',
-                      minWidth: '100px'
-                    }}
-                  >
-                    <option value="">Select Quality</option>
-                    {varieties.find(v => v.name === selectedVariety)?.subVarieties.find(s => s.name === selectedSubVariety)?.qualities.map((quality) => (
-                      <option key={quality.quality} value={quality.quality}>
-                        {quality.quality}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
               {loading ? (
                 <div className="loader-container">
                   <div className="loader-text">
@@ -738,7 +711,7 @@ const Upload = () => {
           </div>
 
           {/* Instructions Panel */}
-          <InstructionPanel  />
+          <InstructionPanel />
         </div>
       </div>
     </div>

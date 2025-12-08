@@ -2,6 +2,7 @@
 """
 Activation routes
 Handles product key activation, login/logout, and model downloads
+Updated to include correction fields for length and whiteness index
 """
 
 import logging
@@ -47,6 +48,7 @@ def calculate_expiration_date(activation_date, years=1):
 def activate_key():
     """
     Simplified activation endpoint that returns device info for client-side model download
+    Updated to include correction fields (length_correction, wi_correction, ww_correction)
     
     Returns:
         JSON: Activation status and device information
@@ -153,6 +155,11 @@ def activate_key():
                     'message': 'Failed to update login status'
                 }), 500
             
+            # Get correction values (use defaults if not present)
+            length_correction = key_entry.get('length_correction', 0)
+            wi_correction = key_entry.get('wi_correction', 0)
+            ww_correction = key_entry.get('ww_correction', 1)
+            
             return jsonify({
                 'success': True,
                 'message': 'Login successful',
@@ -160,6 +167,9 @@ def activate_key():
                 'deviceId': device_id,
                 'modelNumber': model_number,
                 'expirationDate': expiration_date,
+                'length_correction': length_correction,
+                'wi_correction': wi_correction,
+                'ww_correction': ww_correction,
                 'modelFiles': {
                     'sella': f'{model_number}_1.csv',
                     'nonSella': f'{model_number}_2.csv'
@@ -183,6 +193,11 @@ def activate_key():
     key_entry['expirationDate'] = expiration_date
     key_entry['loggedIn'] = True
     key_entry['lastLoginAt'] = activated_at
+    
+    #Add correction fields with default values
+    key_entry['length_correction'] = 0
+    key_entry['wi_correction'] = 0
+    key_entry['ww_correction'] = 1
 
     # Update totals
     keys_data['totalActivations'] = keys_data.get('totalActivations', 0) + 1
@@ -192,6 +207,7 @@ def activate_key():
     if update_activation_data(keys_data):
         logger.info(f"Successfully activated key {key} for user {username}")
         logger.info(f"Expiration date set to: {expiration_date}")
+        logger.info(f"Correction fields initialized: length=0, wi=0, ww=1")
     else:
         logger.error(f"Failed to update activation data for key {key}")
         return jsonify({
@@ -206,6 +222,9 @@ def activate_key():
         'deviceId': device_id,
         'modelNumber': model_number,
         'expirationDate': expiration_date,
+        'length_correction': 0,
+        'wi_correction': 0,
+        'ww_correction': 1,
         'modelFiles': {
             'sella': f'{model_number}_1.csv',
             'nonSella': f'{model_number}_2.csv'
@@ -218,9 +237,10 @@ def check_login_status():
     """
     Check if user is logged in by verifying S3 data
     Also checks if activation key has expired
+    Returns correction values for logged-in users
     
     Returns:
-        JSON: Login status and device information
+        JSON: Login status and device information including correction values
     """
     data = request.get_json()
     client_hardware_id = data.get('hardwareId')
@@ -276,7 +296,13 @@ def check_login_status():
                 'message': 'Invalid device ID'
             }), 400
 
+        # Get correction values (use defaults if not present)
+        length_correction = entry.get('length_correction', 0)
+        wi_correction = entry.get('wi_correction', 0)
+        ww_correction = entry.get('ww_correction', 1)
+
         logger.info(f"User logged in - Hardware ID: {client_hardware_id[:8]}..., Device: {device_id}")
+        logger.info(f"Corrections - length: {length_correction}, wi: {wi_correction}, ww: {ww_correction}")
         
         return jsonify({
             'success': True,
@@ -286,6 +312,9 @@ def check_login_status():
             'hardwareId': client_hardware_id,
             'modelNumber': model_number,
             'expirationDate': expiration_date,
+            'length_correction': length_correction,
+            'wi_correction': wi_correction,
+            'ww_correction': ww_correction,
             'modelFiles': {
                 'sella': f'{model_number}_1.csv',
                 'nonSella': f'{model_number}_2.csv'

@@ -4,6 +4,16 @@ import { MdExpandMore, MdChevronRight, MdEdit, MdAdd, MdCheck, MdClose } from "r
 import { RiDeleteBin6Line } from "react-icons/ri";
 import "../styles/Settings.css";
 
+// Utility function to get API base URL
+const getApiBaseUrl = () => {
+  // Check if running in Electron (exe environment)
+  if (window.electron && window.electron.isElectron) {
+    return 'http://localhost:5000';
+  }
+  // In development/web environment, use relative URLs (proxied by Vite)
+  return '';
+};
+
 const Settings = () => {
   const [data, setData] = useState({ varieties: [] });
   const [toasts, setToasts] = useState([]);
@@ -37,7 +47,7 @@ const Settings = () => {
 
   const loadData = async () => {
     try {
-      const response = await fetch('/varieties');
+      const response = await fetch(`${getApiBaseUrl()}/varieties`);
       if (response.ok) {
         const data = await response.json();
         setData(data);
@@ -55,7 +65,7 @@ const Settings = () => {
 
   const saveData = async (newData) => {
     try {
-      const response = await fetch('/varieties', {
+      const response = await fetch(`${getApiBaseUrl()}/varieties`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,7 +104,7 @@ const Settings = () => {
   const deleteVariety = async (varietyName) => {
     if (window.confirm(`Are you sure you want to delete "${varietyName}" and all its sub-varieties?`)) {
       try {
-        const response = await fetch(`/varieties/${encodeURIComponent(varietyName)}`, {
+        const response = await fetch(`${getApiBaseUrl()}/varieties/${encodeURIComponent(varietyName)}`, {
           method: 'DELETE',
         });
 
@@ -118,7 +128,7 @@ const Settings = () => {
   const deleteSubVariety = async (varietyName, subVarietyName) => {
     if (window.confirm(`Are you sure you want to delete sub-variety "${subVarietyName}"?`)) {
       try {
-        const response = await fetch(`/varieties/${encodeURIComponent(varietyName)}/${encodeURIComponent(subVarietyName)}`, {
+        const response = await fetch(`${getApiBaseUrl()}/varieties/${encodeURIComponent(varietyName)}/${encodeURIComponent(subVarietyName)}`, {
           method: 'DELETE',
         });
 
@@ -143,7 +153,7 @@ const Settings = () => {
   const deleteQuality = async (varietyName, subVarietyName, qualityName) => {
     if (window.confirm(`Are you sure you want to delete quality "${qualityName}"?`)) {
       try {
-        const response = await fetch(`/varieties/${encodeURIComponent(varietyName)}/${encodeURIComponent(subVarietyName)}/qualities/${encodeURIComponent(qualityName)}`, {
+        const response = await fetch(`${getApiBaseUrl()}/varieties/${encodeURIComponent(varietyName)}/${encodeURIComponent(subVarietyName)}/qualities/${encodeURIComponent(qualityName)}`, {
           method: 'DELETE',
         });
 
@@ -188,8 +198,7 @@ const Settings = () => {
     setEditingQuality(`${varietyName}-${subVarietyName}-${quality.quality}`);
     setEditValues({
       quality: quality.quality,
-      length: quality.length,
-      chalkyPercentage: quality.chalkyPercentage || ""
+      length: quality.length
     });
   };
 
@@ -207,7 +216,7 @@ const Settings = () => {
     }
 
     try {
-      const response = await fetch(`/varieties/${encodeURIComponent(editingVariety)}`, {
+      const response = await fetch(`${getApiBaseUrl()}/varieties/${encodeURIComponent(editingVariety)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -241,7 +250,7 @@ const Settings = () => {
     }
 
     try {
-      const response = await fetch(`/varieties/${encodeURIComponent(varietyName)}/${encodeURIComponent(originalSubVarietyName)}`, {
+      const response = await fetch(`${getApiBaseUrl()}/varieties/${encodeURIComponent(varietyName)}/${encodeURIComponent(originalSubVarietyName)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -280,7 +289,7 @@ const Settings = () => {
     }
 
     try {
-      const response = await fetch(`/varieties/${encodeURIComponent(varietyName)}/${encodeURIComponent(subVarietyName)}/qualities/${encodeURIComponent(originalQualityName)}`, {
+      const response = await fetch(`${getApiBaseUrl()}/varieties/${encodeURIComponent(varietyName)}/${encodeURIComponent(subVarietyName)}/qualities/${encodeURIComponent(originalQualityName)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -324,7 +333,7 @@ const Settings = () => {
 
   const startAddingQuality = (varietyName, subVarietyName) => {
     setAddingQuality(`${varietyName}-${subVarietyName}`);
-    setNewItemValues({ quality: "", length: "", chalkyPercentage: "" });
+    setNewItemValues({ quality: "", length: "" });
   };
 
   const cancelAdding = () => {
@@ -389,15 +398,14 @@ const Settings = () => {
     }
 
     try {
-      const response = await fetch(`/varieties/${encodeURIComponent(varietyName)}/${encodeURIComponent(subVarietyName)}/qualities`, {
+      const response = await fetch(`${getApiBaseUrl()}/varieties/${encodeURIComponent(varietyName)}/${encodeURIComponent(subVarietyName)}/qualities`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           quality: newItemValues.quality,
-          length: newItemValues.length,
-          chalkyPercentage: newItemValues.chalkyPercentage
+          length: newItemValues.length
         }),
       });
 
@@ -589,13 +597,6 @@ const Settings = () => {
                                   onChange={(e) => setNewItemValues({ ...newItemValues, length: e.target.value })}
                                   placeholder="Length"
                                   className="input-field-small"
-                                />
-                                <input
-                                  type="text"
-                                  value={newItemValues.chalkyPercentage || ""}
-                                  onChange={(e) => setNewItemValues({ ...newItemValues, chalkyPercentage: e.target.value })}
-                                  placeholder="Chalky Percentage"
-                                  className="input-field-small"
                                   onKeyPress={(e) => e.key === 'Enter' && saveNewQuality(variety.name, sub.name)}
                                 />
                                 <MdCheck className="action-icon" onClick={() => saveNewQuality(variety.name, sub.name)} />
@@ -620,13 +621,6 @@ const Settings = () => {
                                       onChange={(e) => setEditValues({ ...editValues, length: e.target.value })}
                                       placeholder="Length"
                                       className="input-field-small"
-                                    />
-                                    <input
-                                      type="text"
-                                      value={editValues.chalkyPercentage || ""}
-                                      onChange={(e) => setEditValues({ ...editValues, chalkyPercentage: e.target.value })}
-                                      placeholder="Chalky Percentage"
-                                      className="input-field-small"
                                       onKeyPress={(e) => e.key === 'Enter' && saveQualityEdit(variety.name, sub.name, quality.quality)}
                                     />
                                     <MdCheck className="action-icon-small" onClick={() => saveQualityEdit(variety.name, sub.name, quality.quality)} />
@@ -637,7 +631,6 @@ const Settings = () => {
                                     <div className="quality-details">
                                       <span className="quality-label">{quality.quality}</span>
                                       <span className="length-label">{quality.length}</span>
-                                      {quality.chalkyPercentage && <span className="chalky-label">{quality.chalkyPercentage}%</span>}
                                     </div>
                                     <div className="action-buttons">
                                       <MdEdit className="action-icon-small" onClick={() => startEditingQuality(variety.name, sub.name, quality)} />

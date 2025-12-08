@@ -6,6 +6,7 @@ import { FaFileAlt } from "react-icons/fa";
 import { RiQrScan2Line, RiDeleteBin6Line } from "react-icons/ri";
 import { CiSettings } from "react-icons/ci";
 import { MdExpandMore, MdChevronRight } from "react-icons/md";
+import { getApiBaseUrl } from "../utils/axiosConfig";
 
 const Sidebar = ({ showSidebar, setShowSidebar }) => {
   const navigate = useNavigate();
@@ -38,7 +39,7 @@ const Sidebar = ({ showSidebar, setShowSidebar }) => {
 
   const loadData = async () => {
     try {
-      const response = await fetch('/varieties');
+      const response = await fetch(`${getApiBaseUrl()}/varieties`);
       if (response.ok) {
         const data = await response.json();
         setData(data);
@@ -53,7 +54,7 @@ const Sidebar = ({ showSidebar, setShowSidebar }) => {
 
   const saveData = async (newData) => {
     try {
-      const response = await fetch('/varieties', {
+      const response = await fetch(`${getApiBaseUrl()}/varieties`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -115,7 +116,7 @@ const Sidebar = ({ showSidebar, setShowSidebar }) => {
     e.stopPropagation();
     if (window.confirm(`Delete sub-variety "${subVarietyName}"?`)) {
       try {
-        const response = await fetch(`/varieties/${encodeURIComponent(varietyName)}/${encodeURIComponent(subVarietyName)}`, {
+        const response = await fetch(`${getApiBaseUrl()}/varieties/${encodeURIComponent(varietyName)}/${encodeURIComponent(subVarietyName)}`, {
           method: 'DELETE',
         });
 

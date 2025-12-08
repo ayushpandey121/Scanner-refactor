@@ -2,25 +2,8 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 echo ========================================
-echo Building and Publishing Rice Quality App
+echo Building Rice Quality App (Local)
 echo ========================================
-
-REM Check if GH_TOKEN is set
-if "%GH_TOKEN%"=="" (
-    echo ERROR: GH_TOKEN environment variable is not set!
-    echo Please set your GitHub token:
-    echo   set GH_TOKEN=your_github_token_here
-    echo.
-    echo Or run this script with: build-and-publish.bat YOUR_TOKEN
-    pause
-    exit /b 1
-)
-
-REM Allow passing token as argument
-if not "%1"=="" (
-    set "GH_TOKEN=%1"
-    echo Using GitHub token from argument
-)
 
 pushd "%~dp0"
 set "ROOT_DIR=%CD%"
@@ -92,22 +75,17 @@ call npm install
 if errorlevel 1 goto :error
 
 echo.
-echo Step 5: Building and Publishing Electron app...
-echo This will create a GitHub Release and upload the installer
-call npm run electron:publish
+echo Step 5: Building Electron app (Local Build)...
+call npm run electron:build:win
 if errorlevel 1 goto :error
 
 echo.
 echo ========================================
-echo Build and Publish Complete!
+echo Build Complete!
 echo ========================================
-echo Your app has been published to GitHub Releases
 echo Installer is in: %RELEASE_DIR%
 echo.
-echo Next steps:
-echo 1. Go to your GitHub repository releases page
-echo 2. Edit the release notes if needed
-echo 3. Users can now download and install the update
+echo You can now distribute the installer manually
 pause
 popd
 exit /b 0

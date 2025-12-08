@@ -50,7 +50,8 @@ export const generateGrainQualityReportPDF = async ({
       `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ` +
       `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
 
-    const doc = new jsPDF({ unit: "pt", format: "a4", compress: false });
+    // Enable compression
+    const doc = new jsPDF({ unit: "pt", format: "a4", compress: true });
     const pageWidth = doc.internal.pageSize.getWidth();
 
     // Green banner - using explicit RGB values
@@ -58,10 +59,10 @@ export const generateGrainQualityReportPDF = async ({
     doc.setDrawColor(98, 160, 64);
     doc.rect(40, 50, pageWidth - 80, 56, "F");
 
-    // Logo
+    // Logo - resize to smaller dimensions to reduce file size
     try {
       const logoImg = await loadImageElement(logo);
-      doc.addImage(logoImg, "PNG", 60, 120, 120, 48);
+      doc.addImage(logoImg, "PNG", 60, 120, 100, 40, undefined, "FAST");
     } catch (_) {
       // ignore logo load failure
     }
@@ -79,9 +80,8 @@ export const generateGrainQualityReportPDF = async ({
       startY,
       head: [],
       body: [
-        ["Sample Code", details.sampleCode || details.sampleName || "—"],
+        ["Sample Code", details.sampleName || "—"],
         ["Seller Code", details.sellerCode || "—"],
-        ["Variety", details.variety || "—"],
         ["Date", formatted],
         ["Device", localStorage.getItem("deviceId") || "—"],
       ],
@@ -162,16 +162,17 @@ export const generateGrainQualityReportPDF = async ({
     const bars = lengthHistogramData || [];
     if (bars.length > 0) {
       const canvas = document.createElement("canvas");
-      const dpi = 2; // Higher resolution for better quality
+      // Reduced DPI from 2 to 1.5 for smaller file size while maintaining quality
+      const dpi = 1.5;
       
       // Chart dimensions with padding for axes
-      const paddingLeft = 50; // Space for Y-axis labels
-      const paddingBottom = 40; // Space for X-axis labels and title
+      const paddingLeft = 50;
+      const paddingBottom = 40;
       const paddingTop = 10;
       const paddingRight = 10;
       const chartAreaWidth = chartWidth - paddingLeft - paddingRight;
       const chartAreaHeight = chartHeight - paddingTop - paddingBottom;
-      const actualChartHeight = chartHeight + 20; // Extra space for axis labels
+      const actualChartHeight = chartHeight + 20;
       
       canvas.width = chartWidth * dpi;
       canvas.height = actualChartHeight * dpi;
@@ -186,7 +187,7 @@ export const generateGrainQualityReportPDF = async ({
       
       // Calculate max count for Y-axis
       const maxCount = Math.max(1, ...bars.map((b) => b.count));
-      const roundedMax = Math.ceil(maxCount / 5) * 5; // Round up to nearest 5 for cleaner ticks
+      const roundedMax = Math.ceil(maxCount / 5) * 5;
       
       // Chart area coordinates
       const chartAreaX = paddingLeft;
@@ -276,11 +277,11 @@ export const generateGrainQualityReportPDF = async ({
       ctx.textBaseline = "bottom";
       ctx.fillText("Length (mm)", chartAreaX + chartAreaWidth / 2, actualChartHeight - 5);
       
-      // Convert canvas to image and add to PDF
+      // Convert canvas to image with JPEG compression for smaller size
       try {
-        const chartImageData = canvas.toDataURL("image/png");
+        const chartImageData = canvas.toDataURL("image/jpeg", 0.85); // JPEG with 85% quality
         const chartImg = await loadImageElement(chartImageData);
-        doc.addImage(chartImg, "PNG", chartX, chartY, chartWidth, actualChartHeight);
+        doc.addImage(chartImg, "JPEG", chartX, chartY, chartWidth, actualChartHeight, undefined, "FAST");
       } catch (err) {
         console.error("Failed to add histogram image:", err);
         // Fallback to drawing directly in PDF (simplified version)
@@ -323,12 +324,10 @@ export const generateGrainQualityReportPDF = async ({
     doc.text("Grains Count", legendX + 18, chartStartY + 2);
 
     // Rice Grain Length Table
-    // Adjust Y position based on whether we have bars (with increased height for labels) or not
     const chartFinalHeight = bars.length > 0 ? chartHeight + 20 : chartHeight;
     let tableTitleY = chartY + chartFinalHeight + 30;
-    // If the length table would overflow, move it to a new page
     const estimatedRows = Math.max(1, (lengthHistogramData || []).length);
-    const estimatedTableHeight = 24 /*header*/ + estimatedRows * 20 + 24;
+    const estimatedTableHeight = 24 + estimatedRows * 20 + 24;
     if (tableTitleY + estimatedTableHeight > pageHeight - bottomMargin) {
       doc.addPage();
       tableTitleY = 80;
@@ -363,7 +362,7 @@ export const generateGrainQualityReportPDF = async ({
 
     // Footer section - check if we need a new page
     let footerStartY = doc.lastAutoTable.finalY + 40;
-    const footerHeight = 200; // Approximate height needed for footer
+    const footerHeight = 200;
     if (footerStartY + footerHeight > pageHeight - 60) {
       doc.addPage();
       footerStartY = 60;
@@ -402,21 +401,19 @@ export const generateGrainQualityReportPDF = async ({
     companyInfoY += 12;
     doc.text("Contact Number: +919888355355", companyInfoX, companyInfoY);
     companyInfoY += 12;
-    doc.setTextColor(0, 0, 255); // Blue for link
+    doc.setTextColor(0, 0, 255);
     doc.text("Website: www.agsure.in", companyInfoX, companyInfoY);
-    doc.setTextColor(0, 0, 0); // Reset to black
+    doc.setTextColor(0, 0, 0);
 
-    // QR code (right side) - use local image from assets
-    const qrCodeSize = 60;
+    // QR code (right side) - smaller size to reduce file size
+    const qrCodeSize = 50;
     const qrCodeX = pageWidth - 40 - qrCodeSize - 20;
-    const qrCodeY = footerBgY + 35;
+    const qrCodeY = footerBgY + 40;
     
     try {
-      // Use the local QR code image from assets
       const qrImg = await loadImageElement(logoqr);
-      doc.addImage(qrImg, "PNG", qrCodeX, qrCodeY, qrCodeSize, qrCodeSize);
+      doc.addImage(qrImg, "PNG", qrCodeX, qrCodeY, qrCodeSize, qrCodeSize, undefined, "FAST");
     } catch (err) {
-      // Fallback: draw QR code placeholder if image load fails
       console.warn("QR code image load failed, using placeholder:", err);
       doc.setFillColor(255, 255, 255);
       doc.setDrawColor(180, 180, 180);
@@ -431,30 +428,18 @@ export const generateGrainQualityReportPDF = async ({
     // Yellow banner at the bottom
     const yellowBannerY = footerBgY + footerBgHeight - 15;
     const yellowBannerHeight = 15;
-    doc.setFillColor(255, 255, 0); // Yellow
+    doc.setFillColor(255, 255, 0);
     doc.rect(40, yellowBannerY, pageWidth - 80, yellowBannerHeight, "F");
 
-    // Get timestamp from store for filename
-    const storeState = useRiceStore.getState();
-    const scanTimestamp = storeState.date;
-
-    // Format timestamp for filename (YYYY-MM-DD_HH-MM-SS)
-    let timestampForName = "report";
-    if (scanTimestamp) {
-      try {
-        const date = new Date(scanTimestamp);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-        timestampForName = `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
-      } catch (error) {
-        console.warn("Failed to format timestamp for filename:", error);
-        timestampForName = "report";
-      }
-    }
+    // FIX: Use current timestamp for filename instead of store timestamp
+    const currentTime = new Date();
+    const year = currentTime.getFullYear();
+    const month = String(currentTime.getMonth() + 1).padStart(2, '0');
+    const day = String(currentTime.getDate()).padStart(2, '0');
+    const hours = String(currentTime.getHours()).padStart(2, '0');
+    const minutes = String(currentTime.getMinutes()).padStart(2, '0');
+    const seconds = String(currentTime.getSeconds()).padStart(2, '0');
+    const timestampForName = `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
 
     doc.save(`${timestampForName}-quality-report.pdf`);
   } catch (err) {
@@ -462,4 +447,3 @@ export const generateGrainQualityReportPDF = async ({
     throw err;
   }
 };
-

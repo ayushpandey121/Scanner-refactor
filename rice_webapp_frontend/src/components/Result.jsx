@@ -7,6 +7,7 @@ import { getApiBaseUrl } from "../utils/axiosConfig";
 import { CiCircleInfo } from "react-icons/ci";
 import { generateGrainQualityReportPDF } from "../utils/pdfGenerator";
 import Details from "./Details";
+import SampleDetailsDisplay from './SampleDetailsDisplay';
 
 const reanalyzeImage = async (file, minlen, chalky_percentage) => {
   const formData = new FormData();
@@ -113,6 +114,10 @@ const Result = () => {
     fileName,
     analysisStatus,
     analysisError,
+    selectedVariety,
+    selectedSubVariety,
+    selectedVarietyData,
+    selectedSubVarietyData,
   } = useRiceStore();
 
   // console.log("Report Data:", reportData);
@@ -360,19 +365,18 @@ const Result = () => {
     }
   };
 
+
   useEffect(() => {
-    // Use cropped image as primary since grain coordinates are relative to it, fallback to original
     const displayImage = croppedImageUrl || previewImage;
-    // console.log("Display image:", displayImage);
     if (!canvasRef.current || !displayImage) return;
 
     setImageError(false);
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas before drawing new content
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const img = new Image(); // Create new image object to ensure fresh load
+    const img = new Image();
     imageRef.current = img;
 
     const drawCanvas = () => {
@@ -388,46 +392,39 @@ const Result = () => {
 
       scaledGrainsRef.current = [];
 
-      // console.log("Selected defect:", selectedDefect);
-      // console.log("Discolor types:", discolorTypes);
       grains?.forEach((grain) => {
-        // Filter grains based on selected defect
-        if (
-          selectedDefect &&
-          selectedDefect !== "discolor" &&
-          !hasDefect(grain, selectedDefect)
-        ) {
-          return;
-        }
-
-        // Filter by length range from histogram
+        // PRIORITY 1: Length filter (if active, ONLY check this)
         if (selectedLengthRange && grain.length !== undefined) {
-          // Bin includes grains with: min < length <= max
-          // Show ONLY grains within the selected range
-          if (grain.length <= selectedLengthRange.min ||
-            grain.length > selectedLengthRange.max) {
-            return; 
+          // If length filter is active, show ONLY grains within range
+          if (grain.length <= selectedLengthRange.min || grain.length > selectedLengthRange.max) {
+            return; // Skip grains outside range
           }
+          // If we reach here, grain is in range - don't check other filters
         }
+        // PRIORITY 2: Defect filters (only check if NO length filter)
+        else if (selectedDefect) {
+          // Filter by defect type
+          if (selectedDefect !== "discolor" && !hasDefect(grain, selectedDefect)) {
+            return;
+          }
 
-        if (
-          selectedDefect === "discolor" &&
-          selectedDiscolorType &&
-          grain.discolor !== selectedDiscolorType
-        ) {
-          return;
-        }
-
-        if (selectedDefect === "discolor" && grain.discolor.toLowerCase() === "no") {
-          return;
+          // If discolor is selected, check discolor type filter
+          if (selectedDefect === "discolor") {
+            // Skip "no" discolor grains
+            if (grain.discolor && grain.discolor.toLowerCase() === "no") {
+              return;
+            }
+            // If specific discolor type is selected, filter by it
+            if (selectedDiscolorType && grain.discolor !== selectedDiscolorType) {
+              return;
+            }
+          }
         }
 
         // Skip grains with invalid coordinates
         if (!grain.grain_coordinates || grain.grain_coordinates.length !== 4) {
           return;
         }
-
-        // console.log("Grain ID:", grain.id, "Discolor:", grain.discolor);
 
         const [x, y, width, height] = grain.grain_coordinates;
 
@@ -438,27 +435,27 @@ const Result = () => {
 
         const isSelected = grain.id === selectedGrainId;
         const isHovered = grain.id === hoveredGrainId;
+        const hasActiveFilter = selectedLengthRange || selectedDefect;
 
-        let color;
-        // If length range is selected, use pink color for filtered grains
-        if (selectedLengthRange) {
-          color = "#FF1493"; // Deep pink for length-filtered grains
-        } else if (selectedDefect === "discolor") {
-          color = discolorColorMap[grain.discolor.toLowerCase()] || "#f43f5e";
-        } else if (selectedDefect) {
-          color = defectColorMap[selectedDefect] || "#f43f5e";
-        } else {
-          // Default color for all grains when no defect selected
-          color = "#008000";
+        // Only draw bounding box if there's an active filter or grain is selected/hovered
+        if (hasActiveFilter || isSelected || isHovered) {
+          let color;
+          if (selectedLengthRange) {
+            color = "#FF1493";
+          } else if (selectedDefect) {
+            color = defectColorMap[selectedDefect] || "#f43f5e";
+          } else {
+            color = "#008000";
+          }
+
+          ctx.strokeStyle = isSelected
+            ? "#ff0000"
+            : isHovered
+              ? "#ffff00"
+              : color;
+          ctx.lineWidth = isSelected ? 3 : isHovered ? 2 : 1;
+          ctx.strokeRect(scaledX, scaledY, scaledW, scaledH);
         }
-
-        ctx.strokeStyle = isSelected
-          ? "#ff0000"
-          : isHovered
-            ? "#ffff00"
-            : color;
-        ctx.lineWidth = isSelected ? 3 : isHovered ? 2 : 1;
-        ctx.strokeRect(scaledX, scaledY, scaledW, scaledH);
 
         scaledGrainsRef.current.push({
           x: scaledX,
@@ -471,7 +468,6 @@ const Result = () => {
     };
 
     img.onerror = () => {
-      // console.error("Failed to load image:", displayImage);
       setImageError(true);
     };
 
@@ -479,7 +475,6 @@ const Result = () => {
 
     img.src = `${displayImage.split("?")[0]}?t=${Date.now()}`;
 
-    // If image is already loaded (e.g., same src), draw immediately
     if (img.complete) {
       drawCanvas();
     }
@@ -494,7 +489,6 @@ const Result = () => {
     selectedDiscolorType,
     selectedLengthRange
   ]);
-
   // Update chart data from grains on change
   useEffect(() => {
     updateChartDataFromGrains();
@@ -549,11 +543,17 @@ const Result = () => {
     }
   };
 
+  // Replace the existing handleDefectClick function in Result.jsx with this:
+
   const handleDefectClick = (defectType) => {
     if (selectedDefect === defectType) {
+      // Toggle off - clear ALL filters
       setSelectedDefect(null);
       setSelectedDiscolorType(null);
+      setSelectedLengthRange(null);
     } else {
+      // Toggle on - clear other filters and set this defect
+      setSelectedLengthRange(null); // Clear length filter
       setSelectedDefect(defectType);
       setSelectedDiscolorType(null);
     }
@@ -723,21 +723,6 @@ const Result = () => {
           <section className="result-section">
             <div className="result-section-header">
               <div className="left-section">
-                {/* <p
-                  className="back-link"
-                  onClick={() => {
-                    const historyData = useRiceStore.getState().historyData;
-                    if (historyData) {
-                      navigate("/history-trial-details", {
-                        state: { data: historyData },
-                      });
-                    } else {
-                      navigate("/history");
-                    }
-                  }}
-                >
-                  ←Back to Trial Details
-                </p> */}
                 <h2>Scan Results</h2>
                 <p>More info <CiCircleInfo /></p>
               </div>
@@ -760,21 +745,6 @@ const Result = () => {
           <section className="result-section">
             <div className="result-section-header">
               <div className="left-section">
-                {/* <p
-                  className="back-link"
-                  onClick={() => {
-                    const historyData = useRiceStore.getState().historyData;
-                    if (historyData) {
-                      navigate("/history-trial-details", {
-                        state: { data: historyData },
-                      });
-                    } else {
-                      navigate("/history");
-                    }
-                  }}
-                >
-                  ←Back to Trial Details
-                </p> */}
                 <h2>Scan Results</h2>
                 <p>More info <CiCircleInfo /></p>
               </div>
@@ -806,23 +776,8 @@ const Result = () => {
         <section className="result-section">
           <div className="result-section-header">
             <div className="left-section">
-              {/* <p
-                className="back-link"
-                onClick={() => {
-                  const historyData = useRiceStore.getState().historyData;
-                  if (historyData) {
-                    navigate("/history-trial-details", {
-                      state: { data: historyData },
-                    });
-                  } else {
-                    navigate("/history");
-                  }
-                }}
-              >
-                ←Back to Trial Details
-              </p> */}
               <h2>Scan Results</h2>
-              <p>More info <CiCircleInfo onClick={() => setShowDetailsModal(true)} /></p>
+              <p>More info <CiCircleInfo className="info" onClick={() => setShowDetailsModal(true)} /></p>
             </div>
             <div className="right-section">
               <button className="result-export" onClick={handleExport}>Export Results</button>
@@ -859,7 +814,7 @@ const Result = () => {
                   <div className="result-stats-value">{kettValue.toFixed(1)}</div>
                 </div>
                 <div
-                  className={`result-stats-card ${selectedDefect === "broken" ? "selected" : ""
+                  className={`result-stats-card ${selectedDefect === "broken" && !selectedLengthRange ? "selected" : ""
                     } ${loadingBroken ? "loading" : ""}`}
                   onClick={() => handleDefectClick("broken")}
                   style={{ cursor: "pointer" }}
@@ -892,7 +847,7 @@ const Result = () => {
                   {loadingBroken && <div className="card-loader-overlay"><div className="card-loader"></div></div>}
                 </div>
                 <div
-                  className={`result-stats-card ${selectedDefect === "chalky" ? "selected" : ""
+                  className={`result-stats-card ${selectedDefect === "chalky" && !selectedLengthRange ? "selected" : ""
                     } ${loadingChalky ? "loading" : ""}`}
                   onClick={() => handleDefectClick("chalky")}
                   style={{ cursor: "pointer" }}
@@ -925,7 +880,7 @@ const Result = () => {
                   {loadingChalky && <div className="card-loader-overlay"><div className="card-loader"></div></div>}
                 </div>
                 <div
-                  className={`result-stats-card ${selectedDefect === "discolor" ? "selected" : ""
+                  className={`result-stats-card ${selectedDefect === "discolor" && !selectedLengthRange ? "selected" : ""
                     }`}
                   onClick={() => handleDefectClick("discolor")}
                   style={{ cursor: "pointer" }}
@@ -950,57 +905,42 @@ const Result = () => {
               </div>
 
               {/* Length Histogram */}
-              {lengthHistogramData.length > 0 && <Histogram data={lengthHistogramData}
-                onBarClick={handleHistogramBarClick}
-                selectedLengthRange={selectedLengthRange}
-              />}
+              {lengthHistogramData.length > 0 && (
+                <Histogram
+                  lengthData={lengthHistogramData}
+                  grains={grains}
+                  onBarClick={handleHistogramBarClick}
+                  selectedLengthRange={selectedLengthRange}
+                  selectedSubVarietyData={selectedSubVarietyData}
+                />
+              )}
             </div>
 
             <div className="result-detected-section">
-              <div className="result-detected-header">
+      <div className="result-detected-header">
                 <h3>Detected Rice Grains: {totalGrains}</h3>
-                {selectedDefect && (
+                {selectedDefect && !selectedLengthRange && (
                   <div className="result-legend">
-                    {selectedDefect === "discolor" ? (
-                      discolorTypes
-                        .filter((type) => type.toLowerCase() !== "no")
-                        .map((type) => (
-                          <span
-                            key={type}
-                            className={`result-legend-item ${selectedDiscolorType === type ? "selected" : ""
-                              }`}
-                            onClick={() =>
-                              setSelectedDiscolorType(
-                                selectedDiscolorType === type ? null : type
-                              )
-                            }
-                            style={{ cursor: "pointer" }}
-                          >
-                            <span
-                              className="result-dot"
-                              style={{
-                                background:
-                                  discolorColorMap[type.toLowerCase()] ||
-                                  "#f43f5e",
-                              }}
-                            />
-                            {type.charAt(0).toUpperCase() + type.slice(1)}
-                          </span>
-                        ))
-                    ) : (
-                      <span className="result-legend-item">
-                        <span
-                          className="result-dot"
-                          style={{
-                            background:
-                              defectColorMap[selectedDefect] || "#f43f5e",
-                          }}
-                        />
-                        {selectedDefect.charAt(0).toUpperCase() +
-                          selectedDefect.slice(1)}{" "}
-                        Grains
-                      </span>
-                    )}
+                    <span className="result-legend-item">
+                      <span
+                        className="result-dot"
+                        style={{
+                          background:
+                            defectColorMap[selectedDefect] || "#f43f5e",
+                        }}
+                      />
+                      {selectedDefect.charAt(0).toUpperCase() +
+                        selectedDefect.slice(1)}{" "}
+                      Grains
+                    </span>
+                  </div>
+                )}
+                {selectedLengthRange && (
+                  <div className="result-legend">
+                    <span className="result-legend-item">
+                      <span className="result-dot" style={{ background: "#FF1493" }}></span>
+                      Length: {selectedLengthRange.min.toFixed(2)}mm - {selectedLengthRange.max.toFixed(2)}mm
+                    </span>
                   </div>
                 )}
               </div>
@@ -1039,7 +979,7 @@ const Result = () => {
       {showDetailsModal && (
         <div className="modal-overlay" onClick={() => setShowDetailsModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <Details />
+            <SampleDetailsDisplay onClose={() => setShowDetailsModal(false)} />
           </div>
         </div>
       )}

@@ -109,14 +109,12 @@ const RiceAnalysis = () => {
         const isSelected = grain.id === selectedGrainId;
         const isHovered = grain.id === hoveredGrainId;
 
-        // Draw the bounding box
-        ctx.strokeStyle = isSelected
-          ? "#ff0000"
-          : isHovered
-          ? "#ffff00"
-          : boxColor;
-        ctx.lineWidth = isSelected ? 2 : 1;
-        ctx.strokeRect(x, y, w, h);
+        // Only draw bounding box if grain is selected or hovered
+        if (isSelected || isHovered) {
+          ctx.strokeStyle = isSelected ? "#ff0000" : "#ffff00";
+          ctx.lineWidth = isSelected ? 2 : 1;
+          ctx.strokeRect(x, y, w, h);
+        }
 
         scaledGrainsRef.current.push({
           x,

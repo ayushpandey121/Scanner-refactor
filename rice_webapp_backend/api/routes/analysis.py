@@ -3,6 +3,7 @@
 Analysis routes
 Main endpoints for rice grain quality analysis and prediction
 Uses refactored modules: preprocessing, grain, defects, quality, storage
+Updated to apply correction factors from activation data
 """
 
 import os
@@ -78,15 +79,19 @@ def predict():
     """
     Grain prediction endpoint
     Performs complete analysis: extraction, measurements, defect detection, Kett prediction
+    Applies correction factors passed from frontend (stored in localStorage after login)
     
     Expected form data:
         - file: Image file
         - minlen: Minimum length threshold (optional, default: 5.0)
         - chalky_percentage: Chalky threshold (optional, default: 30.0)
         - rice_variety: 'sella' or 'non_sella' (optional, default: 'non_sella')
+        - length_correction: Length correction value (optional, default: 0)
+        - wi_correction: WI (Kett) correction value (optional, default: 0)
+        - ww_correction: WW correction value (optional, default: 1)
     
     Returns:
-        JSON: Complete analysis results with statistics and grain data
+        JSON: Complete analysis results with corrected statistics and grain data
     """
     start_time = time.time()
     request_id = f"predict_{int(time.time())}"
@@ -105,7 +110,21 @@ def predict():
                                         default=DEFAULT_CHALKY_PERCENTAGE)
     rice_variety = request.form.get('rice_variety', default='non_sella')
 
-    # logger.info(f"Parameters: minlen={minlen}mm, chalky={chalky_percentage}%, variety={rice_variety}")
+    # Get correction values from frontend (passed from localStorage)
+    length_correction = request.form.get('length_correction', type=float, default=0.0)
+    wi_correction = request.form.get('wi_correction', type=float, default=0.0)
+    ww_correction = request.form.get('ww_correction', type=float, default=1.0)
+    
+    logger.info("="*70)
+    logger.info("ANALYSIS PARAMETERS:")
+    logger.info(f"  Min length threshold: {minlen}mm")
+    logger.info(f"  Chalky threshold: {chalky_percentage}%")
+    logger.info(f"  Rice variety: {rice_variety}")
+    logger.info(f"CORRECTION FACTORS:")
+    logger.info(f"  Length correction: {length_correction:+.2f}mm")
+    logger.info(f"  WI correction: {wi_correction:+.2f}")
+    logger.info(f"  WW correction: {ww_correction}")
+    logger.info("="*70)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         # ====================================================================
@@ -118,7 +137,6 @@ def predict():
         LocalStorage.save_upload(input_path, file.filename)
         
         # Crop image
-        # logger.info("Cropping input image")
         cropped_image = decode_and_crop_image(input_path)
         if cropped_image is None:
             return jsonify({"error": "Failed to crop input image"}), 500
@@ -129,7 +147,6 @@ def predict():
         cropped_url = f"http://localhost:{Config.PORT}/cropped-image/{cropped_filename}"
         
         # Calculate PPM
-        # logger.info("Calculating PPM")
         pixels_per_metric, _ = calculate_pixels_per_metric(cropped_image)
         if pixels_per_metric is None:
             return jsonify({"error": "Failed to calculate pixels per metric"}), 500
@@ -141,7 +158,6 @@ def predict():
         # ====================================================================
         logger.info("Extracting grains")
         try:
-            # Updated: Extract grains returns a single list of grain data
             extracted_grains = extract_grains(
                 cropped_image, base_name, pixels_per_metric
             )
@@ -167,7 +183,6 @@ def predict():
         exclude_flags_dict = {}
         filename_to_coords = {}
         
-        # Updated loop for extracted_grains
         for padded_image, filename, bbox, exclude_grain in extracted_grains:
             exclude_flags_dict[filename] = exclude_grain
             
@@ -234,10 +249,9 @@ def predict():
             avg_br, std_br = calculate_br_statistics(all_rgb_values)
             logger.info(f"(B-R) stats: avg={avg_br:.2f}, std={std_br:.2f}, threshold={avg_br-11:.2f}")
         else:
-            sample_type = "White"
             avg_r = avg_g = avg_b = 0
             avg_br = std_br = 0
-            logger.warning("No RGB values, defaulting to White")
+            logger.warning("No RGB values, defaulting to zero")
         
         # ====================================================================
         # STEP 5: Analyze each grain for defects
@@ -326,34 +340,58 @@ def predict():
         logger.info("="*60)
         
         # ====================================================================
-        # STEP 6: Calculate statistics and predict Kett
+        # STEP 6: Calculate statistics and predict Kett WITH CORRECTIONS
         # ====================================================================
         # Auto-detect device ID
         device_id = get_device_id_local()
         if not device_id:
             logger.warning("Could not auto-detect device ID, Kett prediction may fail")
         
+        # Calculate raw average length (before correction)
+        raw_avg_length = sum(g['length'] for g in results) / len(results) if results else 0
+        
+        # APPLY LENGTH CORRECTION
+        corrected_avg_length = raw_avg_length + length_correction
+        
+        if length_correction != 0:
+            logger.info(f"âœ… Length correction applied:")
+            logger.info(f"   Raw average: {raw_avg_length:.2f}mm")
+            logger.info(f"   Correction: {length_correction:+.2f}mm")
+            logger.info(f"   Final average: {corrected_avg_length:.2f}mm")
+        
         # Calculate statistics
         statistics = {
             'total_grains': len(results),
-            'avg_length': round(sum(g['length'] for g in results) / len(results), 2) if results else 0,
+            'avg_length': round(corrected_avg_length, 2),
             'avg_breadth': round(sum(g['width'] for g in results) / len(results), 2) if results else 0,
             'chalky_count': sum(1 for g in results if g['chalky'] == 'Yes'),
             'discolored_count': sum(1 for g in results if g['discolor'] == 'YES'),
             'broken_count': sum(1 for g in results if g['broken'])
         }
-
         
         # Predict Kett value (using full dataset RGB averages)
         try:
             if all_rgb_values and device_id:
-                kett_value = predict_kett(
+                # Predict raw Kett value
+                raw_kett_value = predict_kett(
                     avg_r, avg_g, avg_b,
                     sample_type=rice_variety,
                     device_id=device_id
                 )
-                statistics['kett_value'] = round(kett_value, 2)
-                logger.info(f"Kett value predicted: {kett_value:.2f}")
+                
+                # APPLY WI CORRECTION (additive)
+                corrected_kett_value = raw_kett_value + wi_correction
+                
+                # APPLY WW CORRECTION (multiplicative) - currently not used but available
+                # corrected_kett_value = corrected_kett_value * ww_correction
+                
+                if wi_correction != 0:
+                    logger.info(f"âœ… Kett correction applied:")
+                    logger.info(f"   Raw Kett value: {raw_kett_value:.2f}")
+                    logger.info(f"   WI correction: {wi_correction:+.2f}")
+                    logger.info(f"   Final Kett value: {corrected_kett_value:.2f}")
+                
+                statistics['kett_value'] = round(corrected_kett_value, 2)
             else:
                 statistics['kett_value'] = None
                 logger.warning("Kett prediction skipped (no RGB or device ID)")
@@ -387,57 +425,8 @@ def predict():
             }
         
         # ====================================================================
-        # STEP 7: Save Excel files and results
+        # STEP 7: Save results
         # ====================================================================
-        excel_url = None
-        kett_excel_url = None
-        # COMMENTED OUT: Excel creation and saving functionality
-        """
-        excel_url = None
-        kett_excel_url = None
-
-        if results:
-            try:
-                # Full Excel file
-                excel_data = [{
-                    'Image Name': g['id'] + '.jpg',
-                    'Length (mm)': round(g['length'], 2),
-                    'Breadth (mm)': round(g['width'], 2),
-                    'R': round(g['R'], 2),
-                    'G': round(g['G'], 2),
-                    'B': round(g['B'], 2),
-                    'B-R': round(g['B'] - g['R'], 2),
-                    'Discoloration': g['discolor'],
-                    'Chalky': g['chalky']
-                } for g in results]
-
-                excel_filename = f"{base_name}_measurements.xlsx"
-                df = pd.DataFrame(excel_data)
-                LocalStorage.save_excel_file(df, excel_filename)
-                excel_url = f"/excel/{excel_filename}"
-
-                # Kett Excel (non-discolored only)
-                kett_data = [
-                    {
-                        'Image Name': row['Image Name'],
-                        'R': row['R'],
-                        'G': row['G'],
-                        'B': row['B'],
-                        'B-R': row['B-R']
-                    }
-                    for row in excel_data if row['Discoloration'] == 'NO'
-                ]
-
-                if kett_data:
-                    kett_excel_filename = f"{base_name}_kett.xlsx"
-                    kett_df = pd.DataFrame(kett_data)
-                    LocalStorage.save_excel_file(kett_df, kett_excel_filename)
-                    kett_excel_url = f"/excel/{kett_excel_filename}"
-
-            except Exception as e:
-                logger.error(f"Failed to create Excel files: {e}")
-        """
-        
         # Save result image
         result_image_filename = f"{base_name}_result.jpg"
         LocalStorage.save_result(result_image, result_image_filename)
@@ -453,6 +442,11 @@ def predict():
                 "minlen": minlen,
                 "chalky_percentage": chalky_percentage,
                 "rice_variety": rice_variety
+            },
+            "corrections": {
+                "length_correction": length_correction,
+                "wi_correction": wi_correction,
+                "ww_correction": ww_correction
             },
             "statistics": statistics,
             "grains": results,
@@ -481,6 +475,6 @@ def predict():
         }
         
         duration = time.time() - start_time
-        logger.info(f"Prediction request {request_id} completed in {duration:.2f}s")
+        logger.info(f"âœ… Prediction request {request_id} completed in {duration:.2f}s")
         
         return jsonify(response), 200

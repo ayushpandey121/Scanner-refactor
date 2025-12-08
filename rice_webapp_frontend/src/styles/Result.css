@@ -38,6 +38,14 @@
   gap: 8px;
 }
 
+.left-section p {
+  cursor: pointer;
+}
+
+.info{
+  cursor: pointer;
+}
+
 .back-link {
   color: #7bb241;
   cursor: pointer;
@@ -184,11 +192,11 @@
 }
 
 .broken-dot {
-  background-color: #ef4444;
+  background-color: #a7ec12ff;
 }
 
 .chalky-dot {
-  background-color: #9ca3af;
+  background-color: #1001ebff;
 }
 
 .discolor-dot {
@@ -212,11 +220,11 @@
 }
 
 .broken-fill {
-  background: #ef4444;
+  background: #a7ec12ff;
 }
 
 .chalky-fill {
-  background: #9ca3af;
+  background: #1001ebff;
 }
 
 .discolor-fill {

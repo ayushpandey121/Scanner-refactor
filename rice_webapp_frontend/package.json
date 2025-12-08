@@ -1,7 +1,7 @@
 {
   "name": "rice-quality-app",
   "private": false,
-  "version": "1.0.9",
+  "version": "1.0.0",
   "description": "AgSure Rice Quality Scanner Application",
   "author": "Agsure Innovations <info@agsureinnovations.com>",
   "type": "commonjs",
