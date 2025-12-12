@@ -10,7 +10,8 @@ from .routes import (
     file_bp,
     health_bp,
     report_bp,
-    varieties_bp
+    varieties_bp,
+    rgb_bp
 )
 
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     'file_bp',
     'health_bp',
     'report_bp',
-    'varieties_bp'
+    'varieties_bp',
+    'rgb_bp'
 ]
