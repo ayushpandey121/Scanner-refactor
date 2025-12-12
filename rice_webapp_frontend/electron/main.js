@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain} = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { spawn, execSync } = require('child_process');
@@ -157,7 +157,7 @@ function getHardwareInfo() {
   }
   
   try {
-    const raw = execSync('wmic nic where NetEnabled=true get MACAddress').toString();
+    const raw = execSync('wmic nic where "PhysicalAdapter=True" get MACAddress').toString();
     const lines = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
     mac = lines[1] || '';
   } catch (e) {
@@ -400,6 +400,7 @@ async function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
     },
     icon: path.join(__dirname, '../public/icon.png'),
+    autoHideMenuBar: true,
   });
 
   if (isDev && !isPackaged) {

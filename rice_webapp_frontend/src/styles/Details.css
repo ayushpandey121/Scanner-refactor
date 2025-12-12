@@ -112,6 +112,7 @@
 }
 
 .form-row input[type="text"],
+.form-row input[type="number"],
 .form-row select {
     width: 100%;
     padding: 12px 16px;
@@ -126,6 +127,7 @@
 
 
 .form-row input[type="text"]:hover,
+.form-row input[type="number"]:hover,
 .form-row select:hover {
     border-color: #b0b0b0;
 }
@@ -167,6 +169,7 @@
     }
     
     .form-row input[type="text"],
+    .form-row input[type="number"],
     .form-row select {
         padding: 10px 14px;
         font-size: 14px;
@@ -202,6 +205,7 @@
     }
     
     .form-row input[type="text"],
+    .form-row input[type="number"],
     .form-row select {
         padding: 10px 12px;
         font-size: 14px;
@@ -220,6 +224,7 @@
     }
     
     .form-row input[type="text"],
+    .form-row input[type="number"],
     .form-row select {
         font-size: 13px;
     }

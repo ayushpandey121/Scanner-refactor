@@ -251,6 +251,154 @@
   transition: background-color 0.2s ease;
 }
 
+.report-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 20px;
+}
+
+.report-table-header h2 {
+  margin: 0;
+}
+
+.search-bar-wrapper {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 300px;
+}
+
+.search-bar {
+  width: 100%;
+  padding: 10px 40px 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+.search-bar:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+.search-bar::placeholder {
+  color: #999;
+}
+
+.clear-search-button {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #999;
+  cursor: pointer;
+  padding: 5px;
+  line-height: 1;
+}
+
+.clear-search-button:hover {
+  color: #333;
+}
+
+.results-summary {
+  margin-top: 15px;
+  text-align: right;
+  font-size: 14px;
+  color: #666;
+  font-style: italic;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .report-table-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-bar-wrapper {
+    min-width: 100%;
+  }
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0;
+  padding: 15px;
+}
+
+.pagination-button {
+  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.pagination-button:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+.pagination-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pagination-numbers {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.pagination-number {
+  padding: 8px 12px;
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+  min-width: 40px;
+}
+
+.pagination-number:hover {
+  background-color: #e0e0e0;
+  border-color: #999;
+}
+
+.pagination-number.active {
+  background-color: #4CAF50;
+  color: white;
+  border-color: #4CAF50;
+  font-weight: bold;
+}
+
+.pagination-ellipsis {
+  padding: 0 5px;
+  color: #666;
+  font-size: 16px;
+}
+
+.results-summary {
+  margin-top: 15px;
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+  font-style: italic;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .report-page {

@@ -3,6 +3,7 @@
 Activation routes
 Handles product key activation, login/logout, and model downloads
 Updated to include correction fields for length and whiteness index
+Updated to include golden_value and calibrated_value RGB fields
 """
 
 import logging
@@ -49,6 +50,7 @@ def activate_key():
     """
     Simplified activation endpoint that returns device info for client-side model download
     Updated to include correction fields (length_correction, wi_correction, ww_correction)
+    Updated to include RGB calibration fields (golden_value, calibrated_value)
     
     Returns:
         JSON: Activation status and device information
@@ -160,7 +162,11 @@ def activate_key():
             wi_correction = key_entry.get('wi_correction', 0)
             ww_correction = key_entry.get('ww_correction', 1)
             
-            return jsonify({
+            # Get RGB values exactly as stored (could be None/missing)
+            golden_value = key_entry.get('golden_value')
+            calibrated_value = key_entry.get('calibrated_value')
+            
+            response_data = {
                 'success': True,
                 'message': 'Login successful',
                 'hardwareId': hardware_id,
@@ -174,7 +180,15 @@ def activate_key():
                     'sella': f'{model_number}_1.csv',
                     'nonSella': f'{model_number}_2.csv'
                 }
-            }), 200
+            }
+            
+            # Only add RGB values if they exist
+            if golden_value is not None:
+                response_data['golden_value'] = golden_value
+            if calibrated_value is not None:
+                response_data['calibrated_value'] = calibrated_value
+            
+            return jsonify(response_data), 200
         
         return jsonify({
             'success': False, 
@@ -186,6 +200,10 @@ def activate_key():
     activated_at = current_time.strftime('%Y-%m-%d %H:%M:%S')
     expiration_date = calculate_expiration_date(current_time, years=1)  # Default: 1 year
     
+    # Preserve existing RGB values if they exist (don't create if missing)
+    golden_value = key_entry.get('golden_value')
+    calibrated_value = key_entry.get('calibrated_value')
+    
     key_entry['status'] = 'activated'
     key_entry['username'] = username
     key_entry['hardwareId'] = hardware_id
@@ -194,10 +212,12 @@ def activate_key():
     key_entry['loggedIn'] = True
     key_entry['lastLoginAt'] = activated_at
     
-    #Add correction fields with default values
+    # Add correction fields with default values
     key_entry['length_correction'] = 0
     key_entry['wi_correction'] = 0
     key_entry['ww_correction'] = 1
+    
+    # RGB values are preserved as-is (already in key_entry, don't overwrite)
 
     # Update totals
     keys_data['totalActivations'] = keys_data.get('totalActivations', 0) + 1
@@ -215,7 +235,7 @@ def activate_key():
             'message': 'Failed to update activation records'
         }), 500
 
-    return jsonify({
+    response_data = {
         'success': True,
         'message': 'Activation successful',
         'hardwareId': hardware_id,
@@ -229,7 +249,15 @@ def activate_key():
             'sella': f'{model_number}_1.csv',
             'nonSella': f'{model_number}_2.csv'
         }
-    }), 200
+    }
+    
+    # Only add RGB values if they exist in S3
+    if golden_value is not None:
+        response_data['golden_value'] = golden_value
+    if calibrated_value is not None:
+        response_data['calibrated_value'] = calibrated_value
+
+    return jsonify(response_data), 200
 
 
 @activation_bp.route('/check-login-status', methods=['POST'])
@@ -237,10 +265,10 @@ def check_login_status():
     """
     Check if user is logged in by verifying S3 data
     Also checks if activation key has expired
-    Returns correction values for logged-in users
+    Returns correction values and RGB calibration values for logged-in users
     
     Returns:
-        JSON: Login status and device information including correction values
+        JSON: Login status and device information including correction values and RGB values
     """
     data = request.get_json()
     client_hardware_id = data.get('hardwareId')
@@ -300,11 +328,15 @@ def check_login_status():
         length_correction = entry.get('length_correction', 0)
         wi_correction = entry.get('wi_correction', 0)
         ww_correction = entry.get('ww_correction', 1)
+        
+        # Get RGB values exactly as stored (could be None/missing)
+        golden_value = entry.get('golden_value')
+        calibrated_value = entry.get('calibrated_value')
 
         logger.info(f"User logged in - Hardware ID: {client_hardware_id[:8]}..., Device: {device_id}")
         logger.info(f"Corrections - length: {length_correction}, wi: {wi_correction}, ww: {ww_correction}")
         
-        return jsonify({
+        response_data = {
             'success': True,
             'loggedIn': True,
             'deviceId': device_id,
@@ -319,7 +351,15 @@ def check_login_status():
                 'sella': f'{model_number}_1.csv',
                 'nonSella': f'{model_number}_2.csv'
             }
-        }), 200
+        }
+        
+        # Only add RGB values if they exist in S3
+        if golden_value is not None:
+            response_data['golden_value'] = golden_value
+        if calibrated_value is not None:
+            response_data['calibrated_value'] = calibrated_value
+        
+        return jsonify(response_data), 200
         
     except Exception as e:
         logger.error(f"Error checking login status: {e}")
@@ -365,6 +405,81 @@ def logout():
         return jsonify({
             'success': False, 
             'message': 'Failed to update logout status'
+        }), 500
+
+
+@activation_bp.route('/update-calibration', methods=['POST'])
+def update_calibration():
+    """
+    Update calibrated RGB values for an activated device
+    
+    Request body:
+        hardwareId: str - Hardware ID of the device
+        calibrated_value: dict - RGB values {'R': float, 'G': float, 'B': float}
+    
+    Returns:
+        JSON: Update status
+    """
+    data = request.get_json()
+    hardware_id = data.get('hardwareId')
+    calibrated_value = data.get('calibrated_value')
+    
+    if not hardware_id or not calibrated_value:
+        return jsonify({
+            'success': False,
+            'message': 'Hardware ID and calibrated values are required'
+        }), 400
+    
+    # Validate calibrated_value structure
+    if not isinstance(calibrated_value, dict) or not all(k in calibrated_value for k in ['R', 'G', 'B']):
+        return jsonify({
+            'success': False,
+            'message': 'Calibrated value must contain R, G, and B keys'
+        }), 400
+    
+    try:
+        keys_data = get_activation_data()
+        if keys_data is None:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to access activation data'
+            }), 500
+        
+        # Find activation by hardware ID
+        key, entry = get_activation_by_hardware_id(hardware_id)
+        
+        if not entry:
+            return jsonify({
+                'success': False,
+                'message': 'No activation found for this device'
+            }), 404
+        
+        # Update calibrated value
+        activations = keys_data.get('activations', {})
+        activations[key]['calibrated_value'] = calibrated_value
+        
+        # Update timestamp
+        current_time = datetime.now(pytz.timezone("Asia/Kolkata"))
+        keys_data['lastUpdated'] = current_time.strftime('%Y-%m-%d %H:%M:%S')
+        
+        if update_activation_data(keys_data):
+            logger.info(f"Updated calibration for hardware {hardware_id[:8]}...: {calibrated_value}")
+            return jsonify({
+                'success': True,
+                'message': 'Calibration updated successfully',
+                'calibrated_value': calibrated_value
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to update calibration'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error updating calibration: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to update calibration'
         }), 500
 
 

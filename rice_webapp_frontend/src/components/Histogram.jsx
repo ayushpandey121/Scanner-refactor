@@ -15,7 +15,9 @@ const Histogram = ({
   grains, 
   onBarClick, 
   selectedLengthRange,
-  selectedSubVarietyData 
+  selectedSubVarietyData,
+  selectedQualityGrade,
+  onQualityBarClick
 }) => {
   const [viewMode, setViewMode] = useState('length'); // 'length' or 'quality'
 
@@ -141,6 +143,13 @@ const Histogram = ({
             Filtered: {selectedLengthRange.min.toFixed(2)}mm - {selectedLengthRange.max.toFixed(2)}mm
           </span>
         )}
+        
+        {viewMode === 'quality' && selectedQualityGrade && (
+          <span className="result-legend-item" style={{ marginLeft: '10px', fontSize: '14px' }}>
+            <span className="result-dot" style={{ background: "#4a7c25" }}></span>
+            Quality: {selectedQualityGrade}
+          </span>
+        )}
       </div>
       
       <div
@@ -216,8 +225,8 @@ const Histogram = ({
             />
             <Bar 
               dataKey="count" 
-              onClick={viewMode === 'length' ? onBarClick : undefined}
-              style={{ cursor: viewMode === 'length' ? 'pointer' : 'default' }}
+              onClick={viewMode === 'length' ? onBarClick : onQualityBarClick}
+              style={{ cursor: 'pointer' }}
             >
               {currentData.map((entry, index) => {
                 let fillColor = "#7bb241";
@@ -227,7 +236,8 @@ const Histogram = ({
                     Math.abs(entry.length - selectedLengthRange.max) < 0.01;
                   fillColor = isSelected ? "#4a7c25" : "#7bb241";
                 } else {
-                  fillColor = "#7bb241";
+                  const isSelected = selectedQualityGrade && entry.quality === selectedQualityGrade;
+                  fillColor = isSelected ? "#4a7c25" : "#7bb241";
                 }
                 
                 return (

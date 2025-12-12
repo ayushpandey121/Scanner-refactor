@@ -29,7 +29,7 @@ function Header({ showSidebar, setShowSidebar }) {
       const hardwareId = await generateHardwareId();
       
       // Call logout endpoint to update S3
-      const response = await fetch('http://43.205.7.195:8083/logout', {
+      const response = await fetch('http://43.205.7.195:8084/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

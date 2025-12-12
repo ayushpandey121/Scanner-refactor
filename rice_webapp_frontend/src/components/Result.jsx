@@ -17,7 +17,6 @@ const reanalyzeImage = async (file, minlen, chalky_percentage) => {
 
   try {
     const baseUrl = getApiBaseUrl();
-    // Construct URL properly - handle empty string for dev proxy
     const url = baseUrl ? `${baseUrl}/predict` : '/predict';
 
     console.log('Reanalyzing image...');
@@ -28,7 +27,6 @@ const reanalyzeImage = async (file, minlen, chalky_percentage) => {
     const res = await fetch(url, {
       method: "POST",
       body: formData,
-      // Don't set Content-Type - browser will set it with boundary for FormData
     });
 
     if (!res.ok) {
@@ -41,7 +39,6 @@ const reanalyzeImage = async (file, minlen, chalky_percentage) => {
   } catch (error) {
     console.error('Reanalysis fetch error:', error);
 
-    // Provide more specific error messages
     if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
       const baseUrl = getApiBaseUrl();
       const url = baseUrl || 'http://localhost:5000';
@@ -52,7 +49,6 @@ const reanalyzeImage = async (file, minlen, chalky_percentage) => {
       );
     }
 
-    // Re-throw with original message if it's already a formatted error
     if (error.message && !error.message.includes('Could not connect')) {
       throw error;
     }
@@ -61,7 +57,6 @@ const reanalyzeImage = async (file, minlen, chalky_percentage) => {
   }
 };
 
-// Helper function to convert data URL to File
 const dataURLtoFile = (dataurl, filename) => {
   const arr = dataurl.split(',');
   const mime = arr[0].match(/:(.*?);/)[1];
@@ -74,19 +69,15 @@ const dataURLtoFile = (dataurl, filename) => {
   return new File([u8arr], filename, { type: mime });
 };
 
-// Helper function to convert blob URL to File
 const blobURLtoFile = async (blobUrl, filename) => {
   const response = await fetch(blobUrl);
   const blob = await response.blob();
   return new File([blob], filename, { type: blob.type || 'image/jpeg' });
 };
 
-// Helper function to clone a File object to ensure it has fresh data
 const cloneFile = async (file) => {
   try {
-    // Read the file into an ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
-    // Create a new Blob and File from the ArrayBuffer
     const blob = new Blob([arrayBuffer], { type: file.type });
     return new File([blob], file.name, { type: file.type, lastModified: file.lastModified });
   } catch (error) {
@@ -97,6 +88,7 @@ const cloneFile = async (file) => {
 
 const Result = () => {
   const [selectedLengthRange, setSelectedLengthRange] = useState(null);
+  const [selectedQualityGrade, setSelectedQualityGrade] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const navigate = useNavigate();
   const {
@@ -120,14 +112,11 @@ const Result = () => {
     selectedSubVarietyData,
   } = useRiceStore();
 
-  // console.log("Report Data:", reportData);
-  // console.log("Discolor Count from reportData:", reportData?.discolorCount);
-
   const canvasRef = useRef(null);
   const imageRef = useRef(new Image());
   const scaledGrainsRef = useRef([]);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
-  const [selectedDefect, setSelectedDefect] = useState(null); // default to show all grains
+  const [selectedDefect, setSelectedDefect] = useState(null);
   const [selectedDiscolorType, setSelectedDiscolorType] = useState(null);
   const [imageError, setImageError] = useState(false);
   const [minlen, setMinlen] = useState(parameters?.minlen || 5.0);
@@ -135,7 +124,6 @@ const Result = () => {
     parameters?.chalky_percentage || 30.0
   );
 
-  // Update slider values when parameters change (e.g., from dropdown selection)
   useEffect(() => {
     if (parameters?.minlen !== undefined) {
       setMinlen(parameters.minlen);
@@ -147,6 +135,7 @@ const Result = () => {
       setChalkyThreshold(parameters.chalky_percentage);
     }
   }, [parameters?.chalky_percentage]);
+
   const [loadingBroken, setLoadingBroken] = useState(false);
   const [loadingChalky, setLoadingChalky] = useState(false);
   const backendFileBaseUrl = useMemo(() => {
@@ -157,10 +146,8 @@ const Result = () => {
     return "http://localhost:5000";
   }, []);
 
-  // Use cropped image as primary since grain coordinates are relative to it, fallback to original
   const displayImage = croppedImageUrl || previewImage;
 
-  // Get file for reanalysis - handles both uploaded and scanned images
   const resolveToBackendUrl = (url) => {
     if (!url) return null;
     if (/^(data:|blob:|https?:)/i.test(url)) {
@@ -199,18 +186,14 @@ const Result = () => {
   };
 
   const getFileForReanalysis = async () => {
-    // First, try to use selectedFile if it exists and is valid
     if (selectedFile && selectedFile instanceof File) {
-      // Verify the file is still valid by checking if it has a name and size
       if (selectedFile.name && selectedFile.size > 0) {
         try {
-          // Clone the file to ensure we have fresh data that won't be affected by blob URL revocation
           const clonedFile = await cloneFile(selectedFile);
           console.log('Using cloned selectedFile:', { name: clonedFile.name, size: clonedFile.size });
           return clonedFile;
         } catch (error) {
           console.warn('Failed to clone selectedFile, will try to reconstruct:', error);
-          // Fall through to reconstruction
         }
       }
     }
@@ -281,7 +264,6 @@ const Result = () => {
   const totalGrains = reportData?.grainCount || 0;
   const kettValue = reportData?.kettValue || 0;
 
-  // Compute longest and shortest length using useMemo
   const { longestLength, shortestLength } = useMemo(() => {
     if (!grains || grains.length === 0) {
       return { longestLength: 0, shortestLength: 0 };
@@ -294,7 +276,6 @@ const Result = () => {
     return { longestLength, shortestLength };
   }, [grains]);
 
-  // Compute defect percentages
   const brokenPercentage =
     totalGrains > 0 ? ((brokenCount / totalGrains) * 100).toFixed(1) : 0;
   const chalkyPercentage =
@@ -302,7 +283,18 @@ const Result = () => {
   const discolorPercentage =
     totalGrains > 0 ? ((discolorCount / totalGrains) * 100).toFixed(1) : 0;
 
-  // Compute length histogram data
+  const avgLengthWithoutBroken = useMemo(() => {
+    if (!grains || grains.length === 0) return 0;
+    
+    const nonBrokenGrains = grains.filter(g => !g.broken && g.length);
+    
+    if (nonBrokenGrains.length === 0) return 0;
+    
+    const sumLength = nonBrokenGrains.reduce((sum, g) => sum + g.length, 0);
+    
+    return (sumLength / nonBrokenGrains.length).toFixed(2);
+  }, [grains]);
+
   const lengthHistogramData = useMemo(() => {
     if (!grains || grains.length === 0) return [];
 
@@ -361,10 +353,9 @@ const Result = () => {
       case "discolor":
         return grain.discolor && grain.discolor.toLowerCase() !== "no";
       default:
-        return true; // Show all if no filter
+        return true;
     }
   };
-
 
   useEffect(() => {
     const displayImage = croppedImageUrl || previewImage;
@@ -393,35 +384,60 @@ const Result = () => {
       scaledGrainsRef.current = [];
 
       grains?.forEach((grain) => {
-        // PRIORITY 1: Length filter (if active, ONLY check this)
-        if (selectedLengthRange && grain.length !== undefined) {
-          // If length filter is active, show ONLY grains within range
-          if (grain.length <= selectedLengthRange.min || grain.length > selectedLengthRange.max) {
-            return; // Skip grains outside range
+        // PRIORITY 1: Quality grade filter
+        if (selectedQualityGrade && selectedSubVarietyData?.qualities) {
+          const grainLength = grain.length || 0;
+          
+          const qualities = [...selectedSubVarietyData.qualities].sort((a, b) => 
+            parseFloat(b.length) - parseFloat(a.length)
+          );
+          
+          let grainQuality = null;
+          
+          for (let i = 0; i < qualities.length; i++) {
+            const quality = qualities[i];
+            const minLength = parseFloat(quality.length);
+            const maxLength = i === 0 ? Infinity : parseFloat(qualities[i - 1].length);
+            
+            if (grainLength >= minLength && grainLength < maxLength) {
+              grainQuality = quality.quality;
+              break;
+            }
           }
-          // If we reach here, grain is in range - don't check other filters
+          
+          if (!grainQuality) {
+            const lowestThreshold = parseFloat(qualities[qualities.length - 1].length);
+            if (grainLength < lowestThreshold) {
+              grainQuality = 'Other';
+            }
+          }
+          
+          if (grainQuality !== selectedQualityGrade) {
+            return;
+          }
         }
-        // PRIORITY 2: Defect filters (only check if NO length filter)
+        // PRIORITY 2: Length filter
+        else if (selectedLengthRange && grain.length !== undefined) {
+          if (grain.length <= selectedLengthRange.min || grain.length > selectedLengthRange.max) {
+            return;
+          }
+        }
+        // PRIORITY 3: Defect filters
         else if (selectedDefect) {
-          // Filter by defect type
           if (selectedDefect !== "discolor" && !hasDefect(grain, selectedDefect)) {
             return;
           }
 
-          // If discolor is selected, check discolor type filter
           if (selectedDefect === "discolor") {
-            // Skip "no" discolor grains
             if (grain.discolor && grain.discolor.toLowerCase() === "no") {
               return;
             }
-            // If specific discolor type is selected, filter by it
             if (selectedDiscolorType && grain.discolor !== selectedDiscolorType) {
               return;
             }
           }
         }
 
-        // Skip grains with invalid coordinates
         if (!grain.grain_coordinates || grain.grain_coordinates.length !== 4) {
           return;
         }
@@ -435,12 +451,13 @@ const Result = () => {
 
         const isSelected = grain.id === selectedGrainId;
         const isHovered = grain.id === hoveredGrainId;
-        const hasActiveFilter = selectedLengthRange || selectedDefect;
+        const hasActiveFilter = selectedQualityGrade || selectedLengthRange || selectedDefect;
 
-        // Only draw bounding box if there's an active filter or grain is selected/hovered
         if (hasActiveFilter || isSelected || isHovered) {
           let color;
-          if (selectedLengthRange) {
+          if (selectedQualityGrade) {
+            color = "#A0522D";
+          } else if (selectedLengthRange) {
             color = "#FF1493";
           } else if (selectedDefect) {
             color = defectColorMap[selectedDefect] || "#f43f5e";
@@ -483,13 +500,14 @@ const Result = () => {
     previewImage,
     grains,
     selectedGrainId,
-    // hoveredGrainId,
     containerSize,
     selectedDefect,
     selectedDiscolorType,
-    selectedLengthRange
+    selectedLengthRange,
+    selectedQualityGrade,
+    selectedSubVarietyData
   ]);
-  // Update chart data from grains on change
+
   useEffect(() => {
     updateChartDataFromGrains();
   }, [grains]);
@@ -543,21 +561,20 @@ const Result = () => {
     }
   };
 
-  // Replace the existing handleDefectClick function in Result.jsx with this:
-
   const handleDefectClick = (defectType) => {
     if (selectedDefect === defectType) {
-      // Toggle off - clear ALL filters
       setSelectedDefect(null);
       setSelectedDiscolorType(null);
       setSelectedLengthRange(null);
+      setSelectedQualityGrade(null);
     } else {
-      // Toggle on - clear other filters and set this defect
-      setSelectedLengthRange(null); // Clear length filter
+      setSelectedLengthRange(null);
+      setSelectedQualityGrade(null);
       setSelectedDefect(defectType);
       setSelectedDiscolorType(null);
     }
   };
+
   const handleHistogramBarClick = (data) => {
     const clickedEntry =
       data?.activePayload?.[0]?.payload ||
@@ -582,15 +599,39 @@ const Result = () => {
       setSelectedLengthRange(null);
     } else {
       setSelectedLengthRange({ min: minLength, max: maxLength });
+      setSelectedQualityGrade(null);
+      setSelectedDefect(null);
     }
   };
+
+  const handleQualityBarClick = (data) => {
+    const clickedEntry =
+      data?.activePayload?.[0]?.payload ||
+      data?.payload ||
+      data;
+
+    if (!clickedEntry || !clickedEntry.quality) {
+      return;
+    }
+
+    const clickedQuality = clickedEntry.quality;
+
+    if (selectedQualityGrade === clickedQuality) {
+      setSelectedQualityGrade(null);
+      setSelectedLengthRange(null);
+      setSelectedDefect(null);
+    } else {
+      setSelectedQualityGrade(clickedQuality);
+      setSelectedLengthRange(null);
+      setSelectedDefect(null);
+    }
+  };
+
   const handleReanalyzeBroken = async () => {
-    // For data loaded from logs, recalculate broken grains locally using saved lengths
     const current = useRiceStore.getState();
     const currentGrains = current.grains || [];
 
     if (currentGrains.length > 0 && currentGrains[0].length !== undefined) {
-      // Recalculate broken status locally using saved grain lengths
       setLoadingBroken(true);
       try {
         const updatedGrains = currentGrains.map(grain => ({
@@ -620,7 +661,6 @@ const Result = () => {
         setLoadingBroken(false);
       }
     } else {
-      // Fallback to reanalysis for fresh uploads/scans
       const file = await getFileForReanalysis();
       if (!file) {
         console.error("Cannot reanalyze: No valid file available");
@@ -631,7 +671,6 @@ const Result = () => {
       setLoadingBroken(true);
       try {
         const data = await reanalyzeImage(file, minlen, chalkyThreshold);
-        // Update grains, chalky and broken counts
         const updatedParameters = {
           ...current.parameters,
           minlen,
@@ -643,7 +682,7 @@ const Result = () => {
             ...current.reportData,
             brokenCount: data.result.statistics.broken_count,
           },
-          croppedImageUrl: `${data.cropped_url}?t=${Date.now()}`, // Force reload by adding timestamp
+          croppedImageUrl: `${data.cropped_url}?t=${Date.now()}`,
           parameters: updatedParameters,
         });
       } catch (error) {
@@ -670,7 +709,6 @@ const Result = () => {
       if (!data) {
         throw new Error('Received empty response from server');
       }
-      // Update grains, chalky and broken counts
       const current = useRiceStore.getState();
       const updatedParameters = {
         ...current.parameters,
@@ -683,7 +721,7 @@ const Result = () => {
           ...current.reportData,
           chalkyCount: data.result.statistics.chalky_count,
         },
-        croppedImageUrl: `${data.cropped_url}?t=${Date.now()}`, // Force reload by adding timestamp
+        croppedImageUrl: `${data.cropped_url}?t=${Date.now()}`,
         parameters: updatedParameters,
       });
     } catch (error) {
@@ -704,6 +742,9 @@ const Result = () => {
         chalkyCount,
         discolorCount,
         lengthHistogramData,
+        avgLengthWithoutBroken,
+        kettValue,
+        minLen: minlen,
       });
     } catch (error) {
       console.error("PDF export failed:", error);
@@ -715,7 +756,6 @@ const Result = () => {
     setSelectedGrainId(null);
   }, []);
 
-  // Handle different analysis states
   if (analysisStatus === 'loading') {
     return (
       <div className="result-dashboard">
@@ -792,6 +832,10 @@ const Result = () => {
                   <div className="result-stats-value">{avgLength} mm</div>
                 </div>
                 <div className="result-stats-card">
+                  <div className="result-stats-label">Average Length <br></br> (without broken)</div>
+                  <div className="result-stats-value">{avgLengthWithoutBroken} mm</div>
+                </div>
+                <div className="result-stats-card">
                   <div className="result-stats-label">Average Width</div>
                   <div className="result-stats-value">{avgWidth} mm</div>
                 </div>
@@ -814,7 +858,7 @@ const Result = () => {
                   <div className="result-stats-value">{kettValue.toFixed(1)}</div>
                 </div>
                 <div
-                  className={`result-stats-card ${selectedDefect === "broken" && !selectedLengthRange ? "selected" : ""
+                  className={`result-stats-card ${selectedDefect === "broken" && !selectedLengthRange && !selectedQualityGrade ? "selected" : ""
                     } ${loadingBroken ? "loading" : ""}`}
                   onClick={() => handleDefectClick("broken")}
                   style={{ cursor: "pointer" }}
@@ -847,7 +891,7 @@ const Result = () => {
                   {loadingBroken && <div className="card-loader-overlay"><div className="card-loader"></div></div>}
                 </div>
                 <div
-                  className={`result-stats-card ${selectedDefect === "chalky" && !selectedLengthRange ? "selected" : ""
+                  className={`result-stats-card ${selectedDefect === "chalky" && !selectedLengthRange && !selectedQualityGrade ? "selected" : ""
                     } ${loadingChalky ? "loading" : ""}`}
                   onClick={() => handleDefectClick("chalky")}
                   style={{ cursor: "pointer" }}
@@ -880,7 +924,7 @@ const Result = () => {
                   {loadingChalky && <div className="card-loader-overlay"><div className="card-loader"></div></div>}
                 </div>
                 <div
-                  className={`result-stats-card ${selectedDefect === "discolor" && !selectedLengthRange ? "selected" : ""
+                  className={`result-stats-card ${selectedDefect === "discolor" && !selectedLengthRange && !selectedQualityGrade ? "selected" : ""
                     }`}
                   onClick={() => handleDefectClick("discolor")}
                   style={{ cursor: "pointer" }}
@@ -904,7 +948,6 @@ const Result = () => {
                 </div>
               </div>
 
-              {/* Length Histogram */}
               {lengthHistogramData.length > 0 && (
                 <Histogram
                   lengthData={lengthHistogramData}
@@ -912,14 +955,16 @@ const Result = () => {
                   onBarClick={handleHistogramBarClick}
                   selectedLengthRange={selectedLengthRange}
                   selectedSubVarietyData={selectedSubVarietyData}
+                  selectedQualityGrade={selectedQualityGrade}
+                  onQualityBarClick={handleQualityBarClick}
                 />
               )}
             </div>
 
             <div className="result-detected-section">
-      <div className="result-detected-header">
+              <div className="result-detected-header">
                 <h3>Detected Rice Grains: {totalGrains}</h3>
-                {selectedDefect && !selectedLengthRange && (
+                {selectedDefect && !selectedLengthRange && !selectedQualityGrade && (
                   <div className="result-legend">
                     <span className="result-legend-item">
                       <span
@@ -935,11 +980,19 @@ const Result = () => {
                     </span>
                   </div>
                 )}
-                {selectedLengthRange && (
+                {selectedLengthRange && !selectedQualityGrade && (
                   <div className="result-legend">
                     <span className="result-legend-item">
                       <span className="result-dot" style={{ background: "#FF1493" }}></span>
                       Length: {selectedLengthRange.min.toFixed(2)}mm - {selectedLengthRange.max.toFixed(2)}mm
+                    </span>
+                  </div>
+                )}
+                {selectedQualityGrade && (
+                  <div className="result-legend">
+                    <span className="result-legend-item">
+                      <span className="result-dot" style={{ background: "#4a7c25" }}></span>
+                      Quality: {selectedQualityGrade}
                     </span>
                   </div>
                 )}

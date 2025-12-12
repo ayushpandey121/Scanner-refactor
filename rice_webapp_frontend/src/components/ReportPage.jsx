@@ -11,6 +11,13 @@ const ReportPage = () => {
   const [error, setError] = useState(null);
   const backendBaseUrl = getApiBaseUrl() || 'http://localhost:5000';
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 10;
+
   const resolveStorageUrl = (url) => {
     if (!url) return null;
     if (/^(data:|blob:|https?:)/i.test(url)) {
@@ -30,7 +37,6 @@ const ReportPage = () => {
     try {
       if (!filename) return null;
       
-      // Create log filename
       const baseName = filename.replace(/\.[^/.]+$/, '');
       const logFile = `${baseName}.json`;
       
@@ -55,7 +61,6 @@ const ReportPage = () => {
       const response = await fetch(`${backendBaseUrl}/logs/${encodeURIComponent(logFile)}/details`);
       if (response.ok) {
         const details = await response.json();
-        // Return full details object including variety
         return {
           seller_name: details.seller_name || '',
           seller_code: details.seller_code || '',
@@ -83,10 +88,8 @@ const ReportPage = () => {
       const data = await response.json();
       const logsData = data.logs || [];
       
-      // Fetch seller codes and full details from backend for logs
       const logsWithSellerCodes = [];
       for (const log of logsData) {
-        // Check if seller_code exists in various locations
         let sellerCode = null;
         
         if (log.full_data?.details?.seller_code && 
@@ -96,11 +99,9 @@ const ReportPage = () => {
         } else if (log.seller_code && typeof log.seller_code === 'string' && log.seller_code.trim()) {
           sellerCode = log.seller_code.trim();
         } else if (log.full_data?.filename) {
-          // If not found, try to fetch from backend
           sellerCode = await fetchSellerCodeFromBackend(log.full_data.filename);
         }
 
-        // Fetch full details from backend
         let backendDetails = null;
         if (log.full_data?.filename) {
           backendDetails = await fetchSampleDetailsFromBackend(log.full_data.filename);
@@ -109,7 +110,7 @@ const ReportPage = () => {
         logsWithSellerCodes.push({
           ...log,
           fetchedSellerCode: sellerCode,
-          backendDetails: backendDetails // Store the fetched details
+          backendDetails: backendDetails
         });
       }
       
@@ -122,6 +123,86 @@ const ReportPage = () => {
     }
   };
 
+  // Filter logs based on search query (searches across ALL pages)
+  const filteredLogs = logs.filter(log => {
+    if (!searchQuery.trim()) return true;
+
+    const query = searchQuery.toLowerCase().trim();
+    const sellerCode = (log.fetchedSellerCode || '').toLowerCase();
+    const avgLength = log.average_length.toFixed(2);
+    const avgWidth = log.average_width.toFixed(2);
+
+    // Check if query matches seller code, average length, or average width
+    return (
+      sellerCode.includes(query) ||
+      avgLength.includes(query) ||
+      avgWidth.includes(query)
+    );
+  });
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredLogs.length / recordsPerPage);
+  const indexOfLastRecord = currentPage * recordsPerPage;
+  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+  const currentRecords = filteredLogs.slice(indexOfFirstRecord, indexOfLastRecord);
+
+  // Reset to page 1 when search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxPagesToShow = 5;
+    
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pageNumbers.push(i);
+        }
+        pageNumbers.push('...');
+        pageNumbers.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pageNumbers.push(1);
+        pageNumbers.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pageNumbers.push(i);
+        }
+      } else {
+        pageNumbers.push(1);
+        pageNumbers.push('...');
+        pageNumbers.push(currentPage - 1);
+        pageNumbers.push(currentPage);
+        pageNumbers.push(currentPage + 1);
+        pageNumbers.push('...');
+        pageNumbers.push(totalPages);
+      }
+    }
+    
+    return pageNumbers;
+  };
+
   const handleRowClick = async (log) => {
     if (!log.full_data) {
       console.error('No full data available for this log entry');
@@ -129,7 +210,6 @@ const ReportPage = () => {
     }
 
     try {
-      // Extract data from the full log data
       const fullData = log.full_data;
       const statistics = fullData.statistics || {};
       const inputImageUrl = resolveStorageUrl(
@@ -138,13 +218,11 @@ const ReportPage = () => {
         (fullData.filename ? `/upload/${fullData.filename}` : null)
       );
 
-      // Prepare sample details - PRIORITY: Use backendDetails if available
       let sampleDetails = null;
       let savedVariety = null;
       let savedSubVariety = null;
       
       if (log.backendDetails) {
-        // Use the fetched backend details
         sampleDetails = {
           sellerName: log.backendDetails.seller_name || '',
           sellerCode: log.backendDetails.seller_code || '',
@@ -156,7 +234,6 @@ const ReportPage = () => {
         savedVariety = log.backendDetails.variety || null;
         savedSubVariety = log.backendDetails.sub_variety || null;
       } else if (fullData.details) {
-        // Fallback to log file details
         sampleDetails = {
           sellerName: fullData.details.seller_name || '',
           sellerCode: fullData.details.seller_code || '',
@@ -166,7 +243,6 @@ const ReportPage = () => {
           lotUnit: fullData.details.lot_unit || '',
         };
       } else if (fullData.seller_code) {
-        // Handle case where seller_code might be at top level
         sampleDetails = {
           sellerName: fullData.seller_name || '',
           sellerCode: fullData.seller_code || '',
@@ -177,12 +253,10 @@ const ReportPage = () => {
         };
       }
 
-      // Save to localStorage for PDF generation ONLY if we have data
       if (sampleDetails) {
         localStorage.setItem('sampleDetails', JSON.stringify(sampleDetails));
       }
 
-      // Fetch varieties data to get variety and sub-variety objects
       let selectedVarietyData = null;
       let selectedSubVarietyData = null;
       
@@ -208,7 +282,6 @@ const ReportPage = () => {
         }
       }
 
-      // Prepare data for the store
       const grains = fullData.grains || [];
       const storeData = {
         grains: grains,
@@ -231,17 +304,14 @@ const ReportPage = () => {
         },
         analysisStatus: 'completed',
         analysisError: null,
-        sampleDetails: sampleDetails, // This will be used by SampleDetailsDisplay
+        sampleDetails: sampleDetails,
         selectedVariety: savedVariety,
         selectedSubVariety: savedSubVariety,
         selectedVarietyData: selectedVarietyData,
         selectedSubVarietyData: selectedSubVarietyData,
       };
 
-      // Load data into store
       useRiceStore.getState().setRiceData(storeData);
-
-      // Navigate to result page
       navigate('/results');
     } catch (error) {
       console.error('Error loading data from log:', error);
@@ -283,7 +353,7 @@ const ReportPage = () => {
         >
           ← Back to Home
         </button>
-        <h1>Rice Quality Report</h1>
+        <h2>Rice Quality Report</h2>
         <button
           className="refresh-button"
           onClick={fetchLogs}
@@ -294,52 +364,121 @@ const ReportPage = () => {
 
       <div className="report-content">
         <div className="report-table-container">
-          <h2>Detailed Report</h2>
+          <div className="report-table-header">
+            <h2>Detailed Report</h2>
+            <div className="search-bar-wrapper">
+              <input
+                type="text"
+                placeholder="Search by seller code, length, or width..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="search-bar"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')} 
+                  className="clear-search-button"
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
           {logs.length === 0 ? (
             <div className="no-data">
               <p>No report data available. Please run some analyses first.</p>
             </div>
-          ) : (
-            <div className="table-wrapper">
-              <table className="report-table">
-                <thead>
-                  <tr>
-                    <th>Timestamp</th>
-                    <th>Seller Code</th>
-                    <th>Average Length (mm)</th>
-                    <th>Average Width (mm)</th>
-                    <th>L/B Ratio</th>
-                    <th>Broken</th>
-                    <th>Chalky</th>
-                    <th>Discolor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.map((log, index) => {
-                    // Use the fetchedSellerCode that we got from backend, or fallback to '-'
-                    const sellerCode = log.fetchedSellerCode || '-';
-                    
-                    return (
-                      <tr
-                        key={index}
-                        onClick={() => handleRowClick(log)}
-                        style={{ cursor: 'pointer' }}
-                        className="clickable-row"
-                      >
-                        <td>{log.timestamp}</td>
-                        <td>{sellerCode}</td>
-                        <td>{log.average_length.toFixed(2)}</td>
-                        <td>{log.average_width.toFixed(2)}</td>
-                        <td>{log.lb_ratio.toFixed(2)}</td>
-                        <td>{log.broken}</td>
-                        <td>{log.chalky}</td>
-                        <td>{log.discolor}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+          ) : filteredLogs.length === 0 ? (
+            <div className="no-data">
+              <p>No records match your search criteria.</p>
             </div>
+          ) : (
+            <>
+              <div className="table-wrapper">
+                <table className="report-table">
+                  <thead>
+                    <tr>
+                      <th>Timestamp</th>
+                      <th>Seller Code</th>
+                      <th>Average Length (mm)</th>
+                      <th>Average Width (mm)</th>
+                      <th>L/B Ratio</th>
+                      <th>Broken</th>
+                      <th>Chalky</th>
+                      <th>Discolor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentRecords.map((log, index) => {
+                      const sellerCode = log.fetchedSellerCode || '-';
+                      
+                      return (
+                        <tr
+                          key={index}
+                          onClick={() => handleRowClick(log)}
+                          style={{ cursor: 'pointer' }}
+                          className="clickable-row"
+                        >
+                          <td>{log.timestamp}</td>
+                          <td>{sellerCode}</td>
+                          <td>{log.average_length.toFixed(2)}</td>
+                          <td>{log.average_width.toFixed(2)}</td>
+                          <td>{log.lb_ratio.toFixed(2)}</td>
+                          <td>{log.broken}</td>
+                          <td>{log.chalky}</td>
+                          <td>{log.discolor}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="pagination-container">
+                  <button
+                    onClick={handlePreviousPage}
+                    disabled={currentPage === 1}
+                    className="pagination-button"
+                  >
+                    Previous
+                  </button>
+
+                  <div className="pagination-numbers">
+                    {getPageNumbers().map((pageNum, index) => (
+                      pageNum === '...' ? (
+                        <span key={`ellipsis-${index}`} className="pagination-ellipsis">
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`pagination-number ${currentPage === pageNum ? 'active' : ''}`}
+                        >
+                          {pageNum}
+                        </button>
+                      )
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                    className="pagination-button"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+
+              <div className="results-summary">
+                Showing {indexOfFirstRecord + 1}-{Math.min(indexOfLastRecord, filteredLogs.length)} of {filteredLogs.length} records
+              </div>
+            </>
           )}
         </div>
       </div>

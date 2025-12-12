@@ -28,9 +28,9 @@
 
 /* Header */
 .update-notification-header {
-  background: linear-gradient(to right, #3bf64b, #14ec3c);
+  background: linear-gradient(to right, #7bb241, #8BBE4C);
   padding: 0.75rem 1rem;
-  color: rgb(7, 7, 7);
+  color: white;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -118,7 +118,7 @@
 
 .update-notification-version-new {
   font-weight: 500;
-  color: #25eb35;
+  color: #7bb241;
 }
 
 /* Release Notes */
@@ -191,7 +191,7 @@
 }
 
 .update-notification-progress-bar {
-  background-color: #3bf65a;
+  background-color: #7bb241;
   height: 100%;
   transition: width 0.3s ease-out;
 }
@@ -200,10 +200,10 @@
 .update-notification-success {
   margin-bottom: 1rem;
   padding: 0.75rem;
-  background-color: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background-color: #e6f4ea;
+  border: 1px solid #9dd4a0;
   border-radius: 0.5rem;
-  color: #15803d;
+  color: #4a7c25;
   font-size: 0.875rem;
 }
 
@@ -230,22 +230,22 @@
 
 .update-notification-btn-primary {
   flex: 1;
-  background-color: #48f63b;
+  background-color: #7bb241;
   color: white;
 }
 
 .update-notification-btn-primary:hover {
-  background-color: #0ae84c;
+  background-color: #6a9e3a;
 }
 
 .update-notification-btn-success {
   flex: 1;
-  background-color: #22c55e;
+  background-color: #7bb241;
   color: white;
 }
 
 .update-notification-btn-success:hover {
-  background-color: #16a34a;
+  background-color: #6a9e3a;
 }
 
 .update-notification-btn-secondary {

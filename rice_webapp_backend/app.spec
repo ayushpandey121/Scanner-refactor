@@ -2,11 +2,11 @@
 
 
 a = Analysis(
-    ['C:\\Users\\pc\\Desktop\\agsure-webapp\\rice_webapp_frontend\\scanner_service.py'],
+    ['C:\\Users\\pc\\Desktop\\agsure-webapp\\rice_webapp_backend\\app.py'],
     pathex=[],
     binaries=[],
-    datas=[],
-    hiddenimports=['flask', 'flask_cors', 'win32com.client', 'pythoncom'],
+    datas=[('C:\\Users\\pc\\Desktop\\agsure-webapp\\rice_webapp_backend\\utils', 'utils')],
+    hiddenimports=['flask', 'flask_cors', 'werkzeug', 'jinja2', 'click', 'itsdangerous', 'PIL', 'cv2', 'numpy', 'pandas', 'openpyxl', 'scipy', 'imutils', 'skimage'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -21,7 +21,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='scanner_service',
+    name='app',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -40,5 +40,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='scanner_service',
+    name='app',
 )

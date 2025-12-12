@@ -272,28 +272,33 @@ const Details = () => {
                         />
                     </div>
                     <div className="form-row">
-                        <label htmlFor="lotSize">Lot Size</label>
-                        <input
-                            type="text"
-                            id="lotSize"
-                            name="lotSize"
-                            value={formData.lotSize}
-                            onChange={handleChange}
-                        />
-                    </div>
-                    <div className="form-row">
-                        <label htmlFor="lotUnit">Lot Size Unit</label>
-                        <select
-                            id="lotUnit"
-                            name="lotUnit"
-                            value={formData.lotUnit}
-                            onChange={handleChange}
-                        >
-                            <option value="">Select Unit</option>
-                            <option value="Kg">Kg</option>
-                            <option value="Quintal">Quintal</option>
-                            <option value="Ton">Ton</option>
-                        </select>
+                        <label>Lot Size</label>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <input
+                                type="number"
+                                id="lotSize"
+                                name="lotSize"
+                                value={formData.lotSize}
+                                onChange={handleChange}
+                                placeholder="Enter size"
+                                min="0"
+                                step="1"
+                                style={{ flex: 1 }}
+                            />
+                            <select
+                                id="lotUnit"
+                                name="lotUnit"
+                                value={formData.lotUnit}
+                                onChange={handleChange}
+                                disabled={formData.lotSize === ''}
+                                style={{ flex: 1 }}
+                            >
+                                <option value="">Select Unit</option>
+                                <option value="Kg">Kg</option>
+                                <option value="Quintal">Quintal</option>
+                                <option value="Ton">Ton</option>
+                            </select>
+                        </div>
                     </div>
                     
                     {/* Display selected variety (read-only) */}

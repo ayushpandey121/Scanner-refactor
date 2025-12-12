@@ -28,6 +28,9 @@ export const generateGrainQualityReportPDF = async ({
   chalkyCount,
   discolorCount,
   lengthHistogramData,
+  kettValue,
+  avgLengthWithoutBroken,
+  minLen,
 }) => {
   try {
     // Read details saved from Details.jsx
@@ -37,6 +40,7 @@ export const generateGrainQualityReportPDF = async ({
     // Analysis summary values from report data
     const avgLen = Number(avgLength || 0);
     const avgWid = Number(avgWidth || 0);
+    const avgLenWithoutBroken = Number(avgLengthWithoutBroken || 0);
     const lbRatio = avgWid ? (avgLen / avgWid).toFixed(2) : "0";
     const total = Number(totalGrains || 0);
     const brokenPct = total > 0 ? ((Number(brokenCount || 0) / total) * 100).toFixed(2) : "0";
@@ -80,7 +84,7 @@ export const generateGrainQualityReportPDF = async ({
       startY,
       head: [],
       body: [
-        ["Sample Code", details.sampleName || "—"],
+        // ["Sample Code", details.sampleName || "—"],
         ["Seller Code", details.sellerCode || "—"],
         ["Date", formatted],
         ["Device", localStorage.getItem("deviceId") || "—"],
@@ -112,15 +116,17 @@ export const generateGrainQualityReportPDF = async ({
       startY: afterDetailsY + 8,
       head: [],
       body: [
-        ["Average Length (without broken)", avgLen ? avgLen.toFixed(2) : "0"],
-        ["Average Breadth (without broken)", avgWid ? avgWid.toFixed(2) : "0"],
+        ["Average Length", avgLen ? `${avgLen.toFixed(2)} mm` : "0 mm"],
+        [`Average Length ( > ${minLen} mm)`, avgLenWithoutBroken ? `${avgLenWithoutBroken.toFixed(2)} mm` : "0 mm"],
+        ["Average Breadth", avgWid ? `${avgWid.toFixed(2)} mm` : "0 mm"],
         ["L/B Ratio", lbRatio],
         ["No. of Grains", total.toString()],
-        ["Broken Percentage", `${brokenPct}`],
+        ["Broken Percentage", `${brokenPct}%`],
         ["Chalky Grains", chalkyCnt.toString()],
-        ["Chalkiness Percentage", `${chalkyPct}`],
+        ["Chalkiness Percentage", `${chalkyPct}%`],
         ["No. of Discolored Grains", discolorCnt.toString()],
-        ["Discolored Grains %", `${discolorPct}`],
+        ["Discolored Grains %", `${discolorPct}%`],
+        ["Whiteness Index", kettValue ? kettValue.toFixed(2) : "0"],
       ],
       theme: "grid",
       styles: {
@@ -323,42 +329,42 @@ export const generateGrainQualityReportPDF = async ({
     doc.setTextColor(0, 0, 0);
     doc.text("Grains Count", legendX + 18, chartStartY + 2);
 
-    // Rice Grain Length Table
-    const chartFinalHeight = bars.length > 0 ? chartHeight + 20 : chartHeight;
-    let tableTitleY = chartY + chartFinalHeight + 30;
-    const estimatedRows = Math.max(1, (lengthHistogramData || []).length);
-    const estimatedTableHeight = 24 + estimatedRows * 20 + 24;
-    if (tableTitleY + estimatedTableHeight > pageHeight - bottomMargin) {
-      doc.addPage();
-      tableTitleY = 80;
-    }
-    doc.setFontSize(14);
-    doc.text("Rice Grain Length Table", 40, tableTitleY);
+    // // Rice Grain Length Table
+    // const chartFinalHeight = bars.length > 0 ? chartHeight + 20 : chartHeight;
+    // let tableTitleY = chartY + chartFinalHeight + 30;
+    // const estimatedRows = Math.max(1, (lengthHistogramData || []).length);
+    // const estimatedTableHeight = 24 + estimatedRows * 20 + 24;
+    // if (tableTitleY + estimatedTableHeight > pageHeight - bottomMargin) {
+    //   doc.addPage();
+    //   tableTitleY = 80;
+    // }
+    // doc.setFontSize(14);
+    // doc.text("Rice Grain Length Table", 40, tableTitleY);
 
-    // Build rows with cumulative percent
-    let cumulative = 0;
-    const lengthTableRows = bars.map((b, idx) => {
-      const pct = total > 0 ? (b.count * 100) / total : 0;
-      cumulative += pct;
-      return [
-        String(idx + 1),
-        String(b.length),
-        String(b.count),
-        pct.toFixed(2),
-        cumulative.toFixed(2),
-      ];
-    });
+    // // Build rows with cumulative percent
+    // let cumulative = 0;
+    // const lengthTableRows = bars.map((b, idx) => {
+    //   const pct = total > 0 ? (b.count * 100) / total : 0;
+    //   cumulative += pct;
+    //   return [
+    //     String(idx + 1),
+    //     String(b.length),
+    //     String(b.count),
+    //     pct.toFixed(2),
+    //     cumulative.toFixed(2),
+    //   ];
+    // });
 
-    autoTable(doc, {
-      startY: tableTitleY + 8,
-      head: [["S. No.", "Range", "No. of Grains", "Percentage", "Cumulative Percent"]],
-      body: lengthTableRows,
-      theme: "grid",
-      styles: { font: "helvetica", fontSize: 11, cellPadding: 8 },
-      headStyles: { fillColor: [230, 230, 230], textColor: 0, fontStyle: "bold" },
-      margin: { left: 40, right: 40 },
-      tableWidth: pageWidth - 80,
-    });
+    // autoTable(doc, {
+    //   startY: tableTitleY + 8,
+    //   head: [["S. No.", "Range", "No. of Grains", "Percentage", "Cumulative Percent"]],
+    //   body: lengthTableRows,
+    //   theme: "grid",
+    //   styles: { font: "helvetica", fontSize: 11, cellPadding: 8 },
+    //   headStyles: { fillColor: [230, 230, 230], textColor: 0, fontStyle: "bold" },
+    //   margin: { left: 40, right: 40 },
+    //   tableWidth: pageWidth - 80,
+    // });
 
     // Footer section - check if we need a new page
     let footerStartY = doc.lastAutoTable.finalY + 40;

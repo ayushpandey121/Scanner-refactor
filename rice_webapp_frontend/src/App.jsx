@@ -34,7 +34,7 @@ function App() {
 
         // Check login status with EC2 (which checks S3)
         try {
-          const response = await fetch('http://43.205.7.195:8083/check-login-status', {
+          const response = await fetch('http://43.205.7.195:8084/check-login-status', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -155,15 +155,15 @@ function App() {
         <div className="content-area">
           {activationChecked ? (
             <Routes>
-              <Route path="/" element={<ActivationPage />} />
-              <Route path="/landing" element={<LandingPage />} />
-              <Route path="/upload" element={<Upload /> } />
-              <Route path="/results" element={ <Result />} />
-              <Route path="/details" element={<Details /> } />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/gallery" element={<GrainGallery />} />
-              <Route path="/analysis" element={ <RiceAnalysis /> } />
-              <Route path="/report" element={ <ReportPage /> } />
+              <Route path="/" element={isActivated ? <Navigate to="/landing" replace /> : <ActivationPage />} />
+              <Route path="/landing" element={isActivated ? <LandingPage /> : <Navigate to="/" replace />} />
+              <Route path="/upload" element={isActivated ? <Upload /> : <Navigate to="/" replace />} />
+              <Route path="/results" element={isActivated ? <Result /> : <Navigate to="/" replace />} />
+              <Route path="/details" element={isActivated ? <Details /> : <Navigate to="/" replace />} />
+              <Route path="/settings" element={isActivated ? <Settings /> : <Navigate to="/" replace />} />
+              <Route path="/gallery" element={isActivated ? <GrainGallery /> : <Navigate to="/" replace />} />
+              <Route path="/analysis" element={isActivated ? <RiceAnalysis /> : <Navigate to="/" replace />} />
+              <Route path="/report" element={isActivated ? <ReportPage /> : <Navigate to="/" replace />} />
             </Routes>
           ) : (
             <div>Loading...</div>

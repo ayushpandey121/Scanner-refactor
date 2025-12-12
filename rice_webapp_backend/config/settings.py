@@ -67,7 +67,7 @@ class Config:
     # AWS S3 CONFIGURATION
     # ========================================================================
     AWS_REGION = os.environ.get("AWS_REGION", "ap-south-1")
-    S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "agsurescanner")
+    S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "scannerstaging")
     PRODUCT_KEYS_KEY = "product_keys/product_keys.json"
     
     # S3 model folders

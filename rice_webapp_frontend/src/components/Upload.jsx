@@ -568,7 +568,7 @@ const Upload = () => {
             </div>
 
             <div className="scanner-controls">
-              <label htmlFor="file-upload" style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
+              {/* <label htmlFor="file-upload" style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
                 Or upload an existing image:
               </label>
 
@@ -578,7 +578,7 @@ const Upload = () => {
                 accept=".jpg, .jpeg, .png"
                 onChange={handleFileChange}
                 style={{ display: 'block', marginBottom: '15px' }}
-              />
+              /> */}
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap' }}>
                 <label htmlFor="rice-type" style={{ marginRight: '10px', fontWeight: '500' }}>
                   Rice Type:
@@ -595,8 +595,8 @@ const Upload = () => {
                     minWidth: '100px'
                   }}
                 >
-                  <option value="sella">sella</option>
-                  <option value="non_sella">non_sella</option>
+                  <option value="sella">Sella</option>
+                  <option value="non_sella">Non Sella</option>
                 </select>
                 <label htmlFor="chalky-percentage" style={{ marginLeft: '20px', marginRight: '10px', fontWeight: '500' }}>
                   Chalky Percentage:

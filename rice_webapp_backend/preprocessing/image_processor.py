@@ -167,68 +167,68 @@ class ImageProcessor:
         
         return grains
     
-    # @staticmethod
-    # def align_grain_vertically(image, contour):
-    #     """
-    #     Align grain image vertically using PCA
-    #     Updated to use blue background for border
-    #     """
-    #     if not contour is not None and len(contour) > 0:
-    #         logger.warning("No contours provided for alignment")
-    #         return image
+    @staticmethod
+    def align_grain_vertically(image, contour):
+        """
+        Align grain image vertically using PCA
+        Updated to use blue background for border
+        """
+        if not contour is not None and len(contour) > 0:
+            logger.warning("No contours provided for alignment")
+            return image
         
-    #     try:
-    #         contour_points = contour.reshape(-1, 2)
+        try:
+            contour_points = contour.reshape(-1, 2)
             
-    #         # PCA for orientation
-    #         _, eigenvectors = cv2.PCACompute(
-    #             contour_points.astype(np.float32), mean=None
-    #         )
-    #         angle = np.arctan2(eigenvectors[0, 1], eigenvectors[0, 0]) * 180.0 / np.pi
-    #         angle = (angle + 90) % 180 if angle < -45 else angle
+            # PCA for orientation
+            _, eigenvectors = cv2.PCACompute(
+                contour_points.astype(np.float32), mean=None
+            )
+            angle = np.arctan2(eigenvectors[0, 1], eigenvectors[0, 0]) * 180.0 / np.pi
+            angle = (angle + 90) % 180 if angle < -45 else angle
             
-    #         (h, w) = image.shape[:2]
-    #         center = (w // 2, h // 2)
-    #         rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+            (h, w) = image.shape[:2]
+            center = (w // 2, h // 2)
+            rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
             
-    #         # Use blue color for border
-    #         rotated_image = cv2.warpAffine(
-    #             image, rotation_matrix, (w, h), 
-    #             flags=cv2.INTER_LINEAR,
-    #             borderMode=cv2.BORDER_CONSTANT,
-    #             borderValue=BG_COLOR_BGR
-    #         )
+            # Use blue color for border
+            rotated_image = cv2.warpAffine(
+                image, rotation_matrix, (w, h), 
+                flags=cv2.INTER_LINEAR,
+                borderMode=cv2.BORDER_CONSTANT,
+                borderValue=BG_COLOR_BGR
+            )
             
-    #         # Ensure tip is upwards (additional orientation correction)
-    #         bg_mask = ImageProcessor.create_background_mask(rotated_image)
-    #         binary_rotated = cv2.bitwise_not(bg_mask)
-    #         contours_rotated, _ = cv2.findContours(
-    #             binary_rotated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
-    #         )
+            # Ensure tip is upwards (additional orientation correction)
+            bg_mask = ImageProcessor.create_background_mask(rotated_image)
+            binary_rotated = cv2.bitwise_not(bg_mask)
+            contours_rotated, _ = cv2.findContours(
+                binary_rotated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+            )
             
-    #         if contours_rotated:
-    #             main_contour = max(contours_rotated, key=cv2.contourArea)
-    #             moments = cv2.moments(main_contour)
+            if contours_rotated:
+                main_contour = max(contours_rotated, key=cv2.contourArea)
+                moments = cv2.moments(main_contour)
                 
-    #             if moments["m00"] != 0:
-    #                 cx = int(moments["m10"] / moments["m00"])
-    #                 cy = int(moments["m01"] / moments["m00"])
-    #             else:
-    #                 cx, cy = w // 2, h // 2
+                if moments["m00"] != 0:
+                    cx = int(moments["m10"] / moments["m00"])
+                    cy = int(moments["m01"] / moments["m00"])
+                else:
+                    cx, cy = w // 2, h // 2
                 
-    #             farthest_point = max(
-    #                 main_contour[:, 0, :], 
-    #                 key=lambda pt: np.linalg.norm(pt - np.array([cx, cy]))
-    #             )
+                farthest_point = max(
+                    main_contour[:, 0, :], 
+                    key=lambda pt: np.linalg.norm(pt - np.array([cx, cy]))
+                )
                 
-    #             if farthest_point[1] > cy:
-    #                 rotated_image = cv2.rotate(rotated_image, cv2.ROTATE_180)
+                if farthest_point[1] > cy:
+                    rotated_image = cv2.rotate(rotated_image, cv2.ROTATE_180)
             
-    #         return rotated_image
+            return rotated_image
         
-    #     except Exception as e:
-    #         logger.error(f"Error in align_grain_vertically: {str(e)}")
-    #         return image
+        except Exception as e:
+            logger.error(f"Error in align_grain_vertically: {str(e)}")
+            return image
     
     @staticmethod
     def is_bbox_touching_boundary(bbox, image_shape, margin=BOUNDARY_MARGIN):
@@ -335,10 +335,10 @@ class ImageProcessor:
             
             # Pad and align
             padded_grain = ImageProcessor.pad_image_to_dims(grain_rgb, (500, 500))
-            # aligned_grain = ImageProcessor.align_grain_vertically(padded_grain, contour)
+            aligned_grain = ImageProcessor.align_grain_vertically(padded_grain, contour)
             
             filename = f"{image_name}_{idx+1:03d}.jpg"
-            result.append((padded_grain, filename, bbox, exclude_grain))
+            result.append((aligned_grain, filename, bbox, exclude_grain))
         
         # Summary statistics
         total_excluded = sum(1 for _, _, _, exclude in result if exclude)

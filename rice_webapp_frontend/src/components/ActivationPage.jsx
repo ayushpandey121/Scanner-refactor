@@ -12,7 +12,7 @@ const ActivationPage = () => {
   const navigate = useNavigate();
 
   const downloadModelFile = async (deviceId, modelType, fileName) => {
-    const response = await fetch(`http://43.205.7.195:8083/download-model/${deviceId}/${modelType}`);
+    const response = await fetch(`http://43.205.7.195:8084/download-model/${deviceId}/${modelType}`);
     
     if (!response.ok) {
       throw new Error(`Failed to download ${modelType} model`);
@@ -54,7 +54,7 @@ const ActivationPage = () => {
 
       // Step 2: Activate with remote server (which updates S3 with loggedIn: true)
       setProgress('Validating activation key...');
-      const activationUrl = 'http://43.205.7.195:8083/activate';
+      const activationUrl = 'http://43.205.7.195:8084/activate';
       const response = await fetch(activationUrl, {
         method: 'POST',
         headers: {
@@ -81,11 +81,6 @@ const ActivationPage = () => {
       }
 
       console.log('✅ Activation validated by EC2 and S3 updated with loggedIn: true');
-      
-      // Log expiration date if available
-      // if (data.expirationDate) {
-      //   console.log('Expiration date:', data.expirationDate);
-      // }
 
       // Check if modelFiles exist and have required keys
       if (!data.modelFiles || !data.modelFiles.sella || !data.modelFiles.nonSella) {
@@ -107,36 +102,36 @@ const ActivationPage = () => {
 
       console.log('✅ Model files downloaded');
 
-      // Step 4: Cache data in localStorage (for quick reference only - NOT source of truth)
+      // Step 4: Cache data in localStorage with activation timestamp
       localStorage.setItem('isActivated', 'true');
       localStorage.setItem('hardwareId', hardwareId);
       localStorage.setItem('deviceId', deviceId);
       localStorage.setItem('username', username);
       
-      // // Store expiration date if available
-      // if (data.expirationDate) {
-      //   localStorage.setItem('expirationDate', data.expirationDate);
-      // }
-      
-      // console.log('✅ Cached to localStorage (S3 is source of truth)');
+      // console.log('✅ Activation cached locally with timestamp:', activationTimestamp);
 
       setProgress('Activation complete!');
       
-      // Reload to trigger secure S3 check
+      // Reload to trigger App.jsx activation check
       setTimeout(() => {
         window.location.reload();
       }, 500);
 
     } catch (err) {
       console.error('Activation error:', err);
-      setError(err.message || 'Network error. Please try again.');
+      
+      // Provide more helpful error messages
+      if (err.message && err.message.includes('Failed to fetch')) {
+        setError('Network error. Please check your internet connection and try again.');
+      } else {
+        setError(err.message || 'Network error. Please try again.');
+      }
       
       // Clear any partial localStorage data on error
       localStorage.removeItem('isActivated');
       localStorage.removeItem('hardwareId');
       localStorage.removeItem('deviceId');
       localStorage.removeItem('username');
-      // localStorage.removeItem('expirationDate');
     } finally {
       setLoading(false);
     }

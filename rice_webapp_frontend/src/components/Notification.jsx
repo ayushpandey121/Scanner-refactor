@@ -8,6 +8,28 @@ const UpdateNotification = () => {
   const [updateReady, setUpdateReady] = useState(false);
   const [currentVersion, setCurrentVersion] = useState('');
   const [error, setError] = useState(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // Monitor online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log('Internet connection restored');
+      setIsOnline(true);
+    };
+    
+    const handleOffline = () => {
+      console.log('Internet connection lost');
+      setIsOnline(false);
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     // Check if we're in Electron environment
@@ -16,28 +38,36 @@ const UpdateNotification = () => {
       return;
     }
 
-    console.log('[UPDATE UI] Initializing update notification component');
+    // Don't check for updates if offline
+    if (!isOnline) {
+      console.log('Offline - skipping update check');
+      return;
+    }
+
+    console.log('Initializing update notification component');
 
     // Get current version
     window.electron.update.getVersion().then(version => {
       setCurrentVersion(version);
-      console.log('[UPDATE UI] Current version:', version);
+      console.log('Current version:', version);
+    }).catch(err => {
+      console.error('Error getting version:', err);
     });
 
     // CRITICAL: Query for any existing update check result on mount
     const checkForExistingUpdate = async () => {
       try {
-        console.log('[UPDATE UI] Checking for existing update result...');
+        console.log('Checking for existing update result...');
         const lastResult = await window.electron.update.getLastCheckResult();
         
         if (lastResult && lastResult.available && lastResult.info) {
-          console.log('[UPDATE UI] ✅ Found existing update:', lastResult.info.version);
+          console.log(' Found existing update:', lastResult.info.version);
           setUpdateInfo(lastResult.info);
         } else {
-          console.log('[UPDATE UI] No existing update found');
+          console.log('No existing update found');
         }
       } catch (err) {
-        console.error('[UPDATE UI] Error checking existing update:', err);
+        console.error('Error checking existing update:', err);
       }
     };
 
@@ -69,6 +99,13 @@ const UpdateNotification = () => {
 
     window.electron.update.onUpdateError((error) => {
       console.error('[UPDATE UI] ❌ Update error:', error.error);
+      
+      // Don't show network errors when offline
+      if (!isOnline) {
+        console.log('[UPDATE UI] Suppressing update error - device is offline');
+        return;
+      }
+      
       setError(error.error);
       setDownloading(false);
     });
@@ -78,16 +115,27 @@ const UpdateNotification = () => {
       console.log('[UPDATE UI] Cleaning up listeners');
       window.electron.update.removeUpdateListeners();
     };
-  }, []);
+  }, [isOnline]);
 
   const handleDownload = async () => {
+    if (!isOnline) {
+      alert('Cannot download updates while offline. Please connect to the internet.');
+      return;
+    }
+
     try {
       console.log('[UPDATE UI] User clicked download');
       setError(null);
       await window.electron.update.downloadUpdate();
     } catch (err) {
       console.error('[UPDATE UI] Download failed:', err);
-      setError(err.message);
+      
+      // Check if it's a network error
+      if (err.message && err.message.toLowerCase().includes('network')) {
+        setError('Network error. Please check your internet connection.');
+      } else {
+        setError(err.message);
+      }
     }
   };
 
@@ -102,6 +150,11 @@ const UpdateNotification = () => {
     setUpdateReady(false);
     setError(null);
   };
+
+  // Don't render anything if offline
+  if (!isOnline) {
+    return null;
+  }
 
   // Don't render anything if no update
   if (!updateInfo && !updateReady && !error) {
@@ -198,6 +251,7 @@ const UpdateNotification = () => {
               <button
                 onClick={handleDownload}
                 className="update-notification-btn update-notification-btn-primary"
+                disabled={!isOnline}
               >
                 Download Update
               </button>
@@ -240,7 +294,9 @@ const UpdateNotification = () => {
 
       {/* Footer */}
       <div className="update-notification-footer">
-        Updates are checked automatically on startup
+        {isOnline 
+          ? 'Updates are checked automatically when online' 
+          : 'Connect to the internet to check for updates'}
       </div>
     </div>
   );

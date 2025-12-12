@@ -1,6 +1,7 @@
 // Settings.jsx
 import { useState, useEffect } from "react";
-import { MdExpandMore, MdChevronRight, MdEdit, MdAdd, MdCheck, MdClose } from "react-icons/md";
+import { useNavigate } from "react-router-dom";
+import { MdExpandMore, MdChevronRight, MdEdit, MdAdd, MdCheck, MdClose, MdTune } from "react-icons/md";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import "../styles/Settings.css";
 
@@ -15,6 +16,7 @@ const getApiBaseUrl = () => {
 };
 
 const Settings = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState({ varieties: [] });
   const [toasts, setToasts] = useState([]);
   const [expandedVarieties, setExpandedVarieties] = useState({});
@@ -51,7 +53,6 @@ const Settings = () => {
       if (response.ok) {
         const data = await response.json();
         setData(data);
-        showToast("Data loaded successfully", "success");
       } else {
         setData({ varieties: [] });
         showToast("Failed to load data", "error");
@@ -432,9 +433,19 @@ const Settings = () => {
     }
   };
 
+  const handleCalibrate = () => {
+    navigate('/calibration');
+  };
+
   return (
     <div className="settings-container">
-      <h2 className="settings-title">Settings</h2>
+      <div className="settings-header">
+        <h2 className="settings-title">Settings</h2>
+        <button className="calibrate-button" onClick={handleCalibrate}>
+          Calibrate
+          <MdTune className="calibrate-icon" />
+        </button>
+      </div>
 
       {/* Toast Container */}
       <div className="toast-container">
